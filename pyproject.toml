@@ -1,0 +1,7 @@
+[project]
+name = "plane-os-redux"
+version = "0.0.0"
+description = "Plane OS done differently"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = []
