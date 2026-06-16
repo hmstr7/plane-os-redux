@@ -5,3 +5,6 @@
 [submodule "extern/wiringOP"]
 	path = extern/wiringOP
 	url = ../../orangepi-xunlong/wiringOP
+[submodule "extern/ibus"]
+	path = extern/ibus
+	url = ../../zorxx/ibus

@@ -28,7 +28,7 @@
 
 #include <wiringSerial.h>
 
-int main ()
+int main()
 {
   int fd ;
 
