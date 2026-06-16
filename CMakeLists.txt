@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.4...3.18)
+project(plane-os-redux)
+add_subdirectory(extern/pybind11)
+add_subdirectory(extern/wiringOP)
+pybind11_add_module(cstuff cfuncs/hardware.cpp)

@@ -8,3 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
+.python-version
+
+# Build stuff
+CMakeFiles/
+CMakeCache.txt
