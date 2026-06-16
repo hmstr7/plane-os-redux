@@ -2,8 +2,13 @@
  * \license This file is released under the MIT License. See the LICENSE file for details.
  * \brief ibus library Linux example application
  */
+
+extern "C" {
 #include "ibus/ibus.h"
-#include <stdio.h>
+}
+
+#include <cstdio>
+#include <unistd.h>
 
 #define DBG(...) fprintf(stderr, __VA_ARGS__)
 #define ERR(...) fprintf(stderr, __VA_ARGS__)
@@ -20,7 +25,7 @@ static void channel_handler(ibus_channel_t *channels, void *cookie)
 int main(int argc, char *argv[])
 {
    ibus_context_t ctx;
-   uart_lowlevel_config config = { "/dev/ttyUSB0" };
+   uart_lowlevel_config config = { "/dev/ttyS5" };
 
    ctx = ibus_init(&config);
    if(NULL == ctx)
