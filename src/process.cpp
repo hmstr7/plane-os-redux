@@ -71,8 +71,10 @@ void_expensive PWMProcess::init() {
             l_thr_ch.value(), 
             r_thr_ch.value()
         );
+        return {};
     } else {
         // Do nothing
+        return {};
     }
 }
 
@@ -128,7 +130,7 @@ void_expensive IBUSProcess::init() {
                 return std::unexpected(Error(ail_ch.error(), "PWMProcess::init"));
             }
             auto thr_ch = to_uint8(config_thr_ch.value());
-            if (!ail_ch) {
+            if (!thr_ch) {
                 return std::unexpected(Error(thr_ch.error(), "PWMProcess::init"));
             }
             
@@ -138,8 +140,10 @@ void_expensive IBUSProcess::init() {
                 ail_ch.value(),
                 thr_ch.value()
             );
+            return {};
         } else {
             // Do nothing
+            return {};
         }
 }
 
