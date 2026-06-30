@@ -11,6 +11,7 @@ project(plane-os-redux LANGUAGES C CXX)
 add_subdirectory(extern/ibus)
 add_subdirectory(extern/PiPCA9685)
 add_subdirectory(extern/json)
+add_subdirectory(extern/spdlog)
 
 add_executable(main
     # Main program
@@ -37,3 +38,4 @@ add_executable(main
 target_link_libraries(main PRIVATE ibus)
 target_link_libraries(main PRIVATE PiPCA9685::PiPCA9685)
 target_link_libraries(main PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(main PRIVATE spdlog::spdlog)

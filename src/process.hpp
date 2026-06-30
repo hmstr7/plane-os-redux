@@ -7,7 +7,6 @@
 #include <memory>
 #include <mutex>
 #include "spdlog/common.h"
-#include <spdlog/sinks/ansicolor_sink.h>
 #include <vector>
 #include "spdlog/spdlog.h"
 
@@ -60,7 +59,7 @@ class PWMProcess : public Process {
     private:
         std::unique_ptr<PWM> pwm_board;
     public:
-        inline PWMProcess(Shared& shared_mem);
+        PWMProcess(Shared& shared_mem);
         void_expensive init() override;
         void operator()() override;
         void stop() override;
@@ -74,7 +73,7 @@ class IBUSProcess :public Process {
       
         static void handler(ibus_channel_t* channels_raw, void* cookie);;
    public:
-        inline IBUSProcess(Shared& shared_mem);
+        IBUSProcess(Shared& shared_mem);
         void_expensive init() override;
         void operator()() override;
         void stop() override;
