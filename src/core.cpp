@@ -8,10 +8,9 @@
 #include <functional>
 #include <memory>
 #include <print>
-#include <spdlog/sinks/ansicolor_sink.h>
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/sinks/basic_file_sink.h"
-#include <spdlog/spdlog-inl.h>
+#include "spdlog/spdlog.h"
 #include <thread>
 #include <vector>
 
