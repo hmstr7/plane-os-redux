@@ -6,6 +6,7 @@
 #include "common.hpp"
 #include "errors.hpp"
 #include "helper.hpp"
+
 extern "C" {
     #include "ibus/ibus.h"
 }
@@ -63,6 +64,7 @@ Start pushing controls to q_ctrl
 void_expensive IBUS::start(control_queue_t* q_ctrl) {
     this->q_ctrl = q_ctrl;
     ibus_set_channel_handler(context, handler, this);
+    return {};
 }
 
 void IBUS::handler(ibus_channel_t*  channels_raw, void* cookie) {

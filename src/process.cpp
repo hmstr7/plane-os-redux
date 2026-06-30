@@ -5,10 +5,19 @@
 #include "io.hpp"
 #include <cstdint>
 #include <expected>
+#include <iterator>
 #include <memory>
+#include <spdlog/logger.h>
+#include <spdlog/spdlog-inl.h>
 #include <string>
 
+PWMProcess::PWMProcess(Shared& shared_mem) : Process(shared_mem) {
+    class_logger_name = LOGGER_PWM_NAME;
+    INIT_CLASS_LOGGER
+}
+
 void_expensive PWMProcess::init() {
+    logger->trace("Init"); 
     if (!initialized) {
         // getting values from config
         const auto config = get_hardware_config();
@@ -94,7 +103,13 @@ void PWMProcess::stop() {
 }
 
 
+IBUSProcess::IBUSProcess(Shared& shared_mem) : Process(shared_mem) {
+    class_logger_name = LOGGER_IBUS_NAME;
+    INIT_CLASS_LOGGER
+}
+
 void_expensive IBUSProcess::init() {
+    logger->trace("Init"); 
         if (!initialized) {
             // getting values from config
             const auto config = get_hardware_config();

@@ -8,19 +8,30 @@
 #include <functional>
 #include <memory>
 #include <print>
-#include <ratio>
+#include <spdlog/sinks/ansicolor_sink.h>
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/sinks/basic_file_sink.h"
+#include <spdlog/spdlog-inl.h>
 #include <thread>
 #include <vector>
 
+Core::Core() {
+    logger = spdlog::default_logger();
+    logger->set_level(LOGGER_CORE_LEVEL);
+}
 
 void Core::init() {
     // TODO init
-    std::println("Initializing flight core...");  // TEMPORARY
+    ;
     core_state.fstate = FlightState::INIT;
 }
 
 void Core::process_manager() {
     Shared shared_mem;
+
+    // Add logging outputs
+    shared_mem.sinks.push_back(std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>());
+    shared_mem.sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(LOG_FILE));
 
     if (!(core_state.fstate == FlightState::INIT)) {
         // TODO handle uninitialized
@@ -40,8 +51,8 @@ void Core::process_manager() {
             for (auto& proc : procs) {
                 auto init_res = proc->init();
                 if (!init_res) {
-                    // TODO handle failed init
-                    std::println("Process init failed"); // TEMPORARY
+                    // TODO advanced error handling
+                    logger->error("Init failed for {}", typeid(proc).name());
                     return;
                 }
             }
@@ -62,11 +73,11 @@ void Core::process_manager() {
                 for (auto& proc : procs) {
                     if (proc->state == ProcessState::FAILURE) {
                         // TODO handle failed process here
-                        std::println("Process failed");  // TEMPORARY
+                        logger->error("Process {} failed.", typeid(proc).name());  // TEMPORARY
                         core_state.fstate = FlightState::DEINIT;
                         break;
                     } else if (proc->state == ProcessState::STOPPED) {
-                        std::println("Process stopped"); // TEMPORARY
+                        logger->info("Process {} stopped.", typeid(proc).name());
                         // TODO handle stopped process here
                         core_state.fstate = FlightState::DEINIT;
                         break;
@@ -74,19 +85,17 @@ void Core::process_manager() {
                 }
                 std::this_thread::sleep_for(PROCESS_MGR_SLEEP);
             }
-            // Deinit
-            deinit();
         }
         default:
-            // TODO not implemented
-            std::println("Flight mode not implemented"); // TEMPORARY
-            return;
+            // TODO handle not implemented
+            logger->critical("Flight mode not implemented"); // TEMPORARY
     }
+    deinit();
 }
 
 void Core::deinit() {
     // deinit logic here
-    std::println("Core deinit"); // TEMPORARY
+    logger->debug("Core deinit"); // TEMPORARY
 }
 
 Core::~Core() {

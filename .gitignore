@@ -21,3 +21,6 @@ compile_commands.json
 .benchmarks/
 .cache/
 .pytest_cache/
+
+# Logs
+logs/*
