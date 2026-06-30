@@ -8,3 +8,9 @@
 [submodule "extern/ibus"]
 	path = extern/ibus
 	url = ../../zorxx/ibus
+[submodule "extern/PiPCA9685"]
+	path = extern/PiPCA9685
+	url = https://github.com/barulicm/PiPCA9685.git
+[submodule "extern/json"]
+	path = extern/json
+	url = https://github.com/nlohmann/json

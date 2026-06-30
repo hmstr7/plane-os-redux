@@ -1,0 +1,23 @@
+{
+    "Output":{
+        "IBUS":{
+            "device":"/dev/ttyS5",
+            "mapping":{
+                "ele":0,
+                "ail":1,
+                "thr":2,
+                "s_arm":3
+            }
+        },
+        "PWM":{
+            "device":"/dev/i2c-3",
+            "mapping":{
+                "ele":0,
+                "l_ail":1,
+                "r_ail":2,
+                "l_thr":3,
+                "r_thr":4
+            }
+        }
+    }
+}
