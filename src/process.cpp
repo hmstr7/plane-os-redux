@@ -7,8 +7,8 @@
 #include <expected>
 #include <iterator>
 #include <memory>
-#include <spdlog/logger.h>
-#include <spdlog/spdlog-inl.h>
+#include "spdlog/logger.h"
+#include "spdlog/spdlog.h"
 #include <string>
 
 PWMProcess::PWMProcess(Shared& shared_mem) : Process(shared_mem) {

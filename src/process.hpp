@@ -6,7 +6,7 @@
 #include <expected>
 #include <memory>
 #include <mutex>
-#include <spdlog/common.h>
+#include "spdlog/common.h"
 #include <spdlog/sinks/ansicolor_sink.h>
 #include <vector>
 #include "spdlog/spdlog.h"

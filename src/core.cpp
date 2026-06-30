@@ -42,11 +42,11 @@ void Core::process_manager() {
     // initialize Process objects
     switch (core_state.mode) {
         case FlightMode::SIMPLE: {
-            std::vector<std::unique_ptr<Process>> procs;
+            std::vector<std::shared_ptr<Process>> procs;
 
             // Add required processes
-            procs.push_back(std::make_unique<IBUSProcess>(shared_mem));
-            procs.push_back(std::make_unique<PWMProcess>(shared_mem));
+            procs.push_back(std::make_shared<IBUSProcess>(shared_mem));
+            procs.push_back(std::make_shared<PWMProcess>(shared_mem));
 
             for (auto& proc : procs) {
                 auto init_res = proc->init();
