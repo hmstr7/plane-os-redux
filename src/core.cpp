@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <print>
 #include <ratio>
 #include <thread>
 #include <vector>
@@ -14,6 +15,7 @@
 
 void Core::init() {
     // TODO init
+    std::println("Initializing flight core...");  // TEMPORARY
     core_state.fstate = FlightState::INIT;
 }
 
@@ -22,6 +24,7 @@ void Core::process_manager() {
 
     if (!(core_state.fstate == FlightState::INIT)) {
         // TODO handle uninitialized
+        std::println("Core not initialized"); // TEMPORARY
         return;
     }
 
@@ -38,6 +41,7 @@ void Core::process_manager() {
                 auto init_res = proc->init();
                 if (!init_res) {
                     // TODO handle failed init
+                    std::println("Process init failed"); // TEMPORARY
                     return;
                 }
             }
@@ -58,9 +62,11 @@ void Core::process_manager() {
                 for (auto& proc : procs) {
                     if (proc->state == ProcessState::FAILURE) {
                         // TODO handle failed process here
+                        std::println("Process failed");  // TEMPORARY
                         core_state.fstate = FlightState::DEINIT;
                         break;
                     } else if (proc->state == ProcessState::STOPPED) {
+                        std::println("Process stopped"); // TEMPORARY
                         // TODO handle stopped process here
                         core_state.fstate = FlightState::DEINIT;
                         break;
@@ -73,12 +79,14 @@ void Core::process_manager() {
         }
         default:
             // TODO not implemented
+            std::println("Flight mode not implemented"); // TEMPORARY
             return;
     }
 }
 
 void Core::deinit() {
     // deinit logic here
+    std::println("Core deinit"); // TEMPORARY
 }
 
 Core::~Core() {
