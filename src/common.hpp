@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
-#include <queue>
+#include <boost/circular_buffer.hpp>
 
 
 enum FlightState {
@@ -25,7 +25,7 @@ struct Control {
     inline Control(uint16_t ele, uint16_t ail, uint16_t thr): elevator(ele), aileron(ail), throttle(thr) {};
 };
 
-typedef std::queue<Control> control_queue_t;
+typedef boost::circular_buffer<Control> control_queue_t;
 
 struct State {
     enum FlightState fstate;

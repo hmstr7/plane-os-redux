@@ -2,9 +2,6 @@
 #include "common.hpp"
 #include "errors.hpp"
 #include "process.hpp"
-#include <algorithm>
-#include <chrono>
-#include <cstddef>
 #include <functional>
 #include <memory>
 #include <print>
@@ -17,6 +14,13 @@
 Core::Core() {
     logger = spdlog::default_logger();
     logger->set_level(LOGGER_CORE_LEVEL);
+
+
+}
+
+void Core::sigint_handler(int signal) {
+    logger->info("Interrupt");
+    deinit();
 }
 
 void Core::init() {
@@ -26,8 +30,6 @@ void Core::init() {
 }
 
 void Core::process_manager() {
-    Shared shared_mem;
-
     // Add logging outputs
     shared_mem.sinks.push_back(std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>());
     shared_mem.sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(LOG_FILE));
@@ -41,8 +43,6 @@ void Core::process_manager() {
     // initialize Process objects
     switch (core_state.mode) {
         case FlightMode::SIMPLE: {
-            std::vector<std::shared_ptr<Process>> procs;
-
             // Add required processes
             procs.push_back(std::make_shared<IBUSProcess>(shared_mem));
             procs.push_back(std::make_shared<PWMProcess>(shared_mem));
@@ -68,6 +68,8 @@ void Core::process_manager() {
 
             core_state.fstate = FlightState::OPERATIONAL;
 
+
+            // Watchdog loop
             while (core_state.fstate == FlightState::OPERATIONAL) {
                 for (auto& proc : procs) {
                     if (proc->state == ProcessState::FAILURE) {
@@ -93,8 +95,15 @@ void Core::process_manager() {
 }
 
 void Core::deinit() {
-    // deinit logic here
-    logger->debug("Core deinit"); // TEMPORARY
+    logger->trace("Core deinit");
+
+    core_state.fstate = DEINIT;
+
+    if (!procs.empty()) {
+        for (auto& proc : procs) {
+            proc->stop();
+        }
+    }
 }
 
 Core::~Core() {

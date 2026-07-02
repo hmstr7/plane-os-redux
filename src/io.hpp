@@ -1,7 +1,9 @@
 #pragma once
 #include <expected>
+#include <memory>
 #include <queue>
 #include <cstdint>
+#include "spdlog/spdlog.h"
 #include <string_view>
 #include "PiPCA9685/PCA9685.h"
 #include "errors.hpp"
@@ -16,6 +18,7 @@ extern "C" {
 class PWM {
     private:
         // config
+        std::shared_ptr<spdlog::logger> logger;
 
         const std::string device;
         const uint8_t ele_ch;
@@ -34,12 +37,12 @@ class PWM {
             uint8_t l_thr_ch,
             uint8_t r_thr_ch
         );
-        void_cheap execute(Control control_sequence);
+        void_cheap execute(Control& control_sequence);
 };
 
 class IBUS {
     private:
-        bool initialized = false;
+        std::shared_ptr<spdlog::logger> logger;
 
         ibus_context_t context;
         uart_lowlevel_config ibus_config;

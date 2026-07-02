@@ -6,6 +6,11 @@ set(JSON_BuildTests OFF CACHE INTERNAL "")
 
 project(plane-os-redux LANGUAGES C CXX)
 
+# Global packages
+find_package(Boost REQUIRED) # Global because too general and too big
+
+
+# Git submodules
 #add_subdirectory(extern/pybind11)
 #add_subdirectory(extern/wiringOP)
 add_subdirectory(extern/ibus)
@@ -39,3 +44,4 @@ target_link_libraries(main PRIVATE ibus)
 target_link_libraries(main PRIVATE PiPCA9685::PiPCA9685)
 target_link_libraries(main PRIVATE nlohmann_json::nlohmann_json)
 target_link_libraries(main PRIVATE spdlog::spdlog)
+target_link_libraries(MyTarget PRIVATE Boost::headers)

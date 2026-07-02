@@ -15,12 +15,16 @@ CMakeFiles/
 CMakeCache.txt
 *.cmake
 Makefile
-compile_commands.json
+
 
 # Other
 .benchmarks/
 .cache/
 .pytest_cache/
+
+# Dev tools
+.clangd
+compile_commands.json
 
 # Logs
 logs/*

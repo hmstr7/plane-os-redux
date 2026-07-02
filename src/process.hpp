@@ -13,6 +13,7 @@
 #define LOGGER_PWM_NAME "PWM"
 #define LOGGER_IBUS_NAME "IBUS"
 #define LOGGER_PROCESS_LEVEL spdlog::level::trace
+#define Q_CTRL_SIZE 10
 
 #define INIT_CLASS_LOGGER logger = spdlog::get(class_logger_name); \
     if (!logger) { \
@@ -29,14 +30,7 @@ enum ProcessState {
 };
 
 struct Shared {
-    /*
-    private:
-        std::mutex q_ctrl_lock{};
-        control_queue_t q_ctrl;
-    inline control_queue_t* get_q_ctrl() {   
-    };
-    */
-    control_queue_t q_ctrl;
+    control_queue_t q_ctrl{Q_CTRL_SIZE}; // TODO replace later with q_input and q_output
     std::vector<spdlog::sink_ptr> sinks;
 };
 
@@ -65,7 +59,7 @@ class PWMProcess : public Process {
         void stop() override;
 };
 
-class IBUSProcess :public Process {
+class IBUSProcess: public Process {
    private:
         std::unique_ptr<IBUS> ibus;
         ibus_context_t ctx;
