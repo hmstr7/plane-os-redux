@@ -107,6 +107,11 @@ void IBUS::handler(ibus_channel_t*  channels_raw, void* cookie) {
         }
         return;
     }
+    
+    if (channels_raw[self->ele_ch].value == 0 || channels_raw[self->ail_ch].value == 0 || channels_raw[self->thr_ch].value == 0) {
+        self->logger->warn("Input value of 0 detected! IBUS may be dead");
+        return;
+    }
 
     self->q_ctrl->push_back(
         Control(
