@@ -23,7 +23,8 @@
     }
 
 enum ProcessState {
-    NOT_RUNNING,
+    NOT_READY,
+    READY,
     RUNNING,
     FAILURE,
     STOPPED
@@ -42,7 +43,7 @@ class Process {
         bool initialized = false;
     public:
         inline Process(Shared& shared_mem): shared_mem(shared_mem) {};
-        ProcessState state = ProcessState::NOT_RUNNING;
+        ProcessState state = ProcessState::NOT_READY;
         virtual void_expensive init() = 0;
         virtual void operator()() = 0;
         virtual void stop() = 0;

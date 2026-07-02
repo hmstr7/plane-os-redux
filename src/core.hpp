@@ -14,7 +14,6 @@ class Core {
         Shared shared_mem;
         std::vector<std::shared_ptr<Process>> procs;
         std::shared_ptr<spdlog::logger> logger;
-        void sigint_handler(int signal);
     public:
         State core_state;
         

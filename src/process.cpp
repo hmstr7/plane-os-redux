@@ -92,6 +92,7 @@ void_expensive PWMProcess::init() {
             l_thr_ch.value(), 
             r_thr_ch.value()
         );
+        state = ProcessState::READY;
         logger->info("Initialized successfully");
         return {};
     } else {
@@ -101,6 +102,12 @@ void_expensive PWMProcess::init() {
 }
 
 void PWMProcess::operator()() {
+    if (state == ProcessState::READY) {
+        state = ProcessState::RUNNING;
+    } else {
+        logger->error("Run process.init() before starting a thread!");
+        return;
+    }
     while(state == ProcessState::RUNNING) {
         Control current_control = shared_mem.q_ctrl.front();
         void_cheap exec_res = pwm_board->execute(current_control);
@@ -181,6 +188,8 @@ void_expensive IBUSProcess::init() {
             ail_ch.value(),
             thr_ch.value()
         );
+
+        state = ProcessState::READY;
         logger->info("Initialized successfully");
         return {};
     } else {
@@ -190,10 +199,17 @@ void_expensive IBUSProcess::init() {
 }
 
 void IBUSProcess::operator()() {
-    // TODO: error handling
+    if (state == ProcessState::READY) {
+        state = ProcessState::RUNNING;
+    } else {
+        logger->error("Run process.init() before starting a thread!");
+        return;
+    }
     void_expensive start_res = this->ibus->start(&(shared_mem.q_ctrl));
     if (!start_res) {
         logger->error("Could not start handling IBUS packets: ", start_res.error());
+        state = ProcessState::FAILURE;
+        return;
     }
 }
 

@@ -44,9 +44,10 @@ void_cheap PWM::execute(Control& control_sequence) {
     double elevator = (double) control_sequence.elevator/1000;
     board->set_pwm_ms(ele_ch, elevator);
 
-    double aileron = (double) control_sequence.aileron/1000;
-    board->set_pwm_ms(l_ail_ch, aileron);
-    board->set_pwm_ms(r_ail_ch, -aileron);
+    double l_aileron = (double) control_sequence.aileron/1000;
+    double r_aileron = 3.0 - l_aileron;
+    board->set_pwm_ms(l_ail_ch, l_aileron);
+    board->set_pwm_ms(r_ail_ch, r_aileron);
     return {};
 }
 

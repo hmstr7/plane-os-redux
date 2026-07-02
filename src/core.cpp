@@ -2,6 +2,7 @@
 #include "common.hpp"
 #include "errors.hpp"
 #include "process.hpp"
+#include <cstdlib>
 #include <functional>
 #include <memory>
 #include <print>
@@ -10,6 +11,8 @@
 #include "spdlog/spdlog.h"
 #include <thread>
 #include <vector>
+#include <signal.h>
+
 
 Core::Core() {
     logger = spdlog::default_logger();
@@ -18,10 +21,7 @@ Core::Core() {
 
 }
 
-void Core::sigint_handler(int signal) {
-    logger->info("Interrupt");
-    deinit();
-}
+
 
 void Core::init() {
     // TODO init
