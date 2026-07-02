@@ -81,7 +81,7 @@ void_expensive PWMProcess::init() {
         auto r_thr_ch = to_uint8(config_r_thr_ch.value());
         if (!r_thr_ch) {
             logger->error("Conversion error");
-            return std::unexpected(Error(ele_ch.error(), "PWMProcess::init"));
+            return std::unexpected(Error(r_thr_ch.error(), "PWMProcess::init"));
         }
 
         pwm_board = std::make_unique<PWM>(

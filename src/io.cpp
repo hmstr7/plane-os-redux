@@ -21,7 +21,7 @@ PWM::PWM(
     uint8_t r_ail_ch,
     uint8_t l_thr_ch,
     uint8_t r_thr_ch
-) : device(device), ele_ch(ele_ch), l_ail_ch(l_ail_ch), r_ail_ch(r_ail_ch), l_thr_ch(l_thr_ch), r_thr_ch(r_ail_ch) {
+) : device(device), ele_ch(ele_ch), l_ail_ch(l_ail_ch), r_ail_ch(r_ail_ch), l_thr_ch(l_thr_ch), r_thr_ch(r_thr_ch) {
     logger = spdlog::get(LOGGER_PWM_NAME);
     if (!logger) {
         logger = spdlog::default_logger(); // TODO proper fallback
