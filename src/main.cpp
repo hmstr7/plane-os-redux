@@ -12,11 +12,9 @@ struct sigint_handler {
     } 
 };
 
-
-
 int main() {
     // struct sigaction sigIntHandler;
-
+    
     // sigint_handler interrupt_handler{};
 
     // sigIntHandler.sa_handler = interrupt_handler;

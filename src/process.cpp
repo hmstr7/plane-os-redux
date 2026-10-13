@@ -116,6 +116,7 @@ void PWMProcess::operator()() {
             state = ProcessState::FAILURE;
         }
     }
+    logger->trace("PWM thread stopped.");
 }
 
 void PWMProcess::stop() {
@@ -162,6 +163,11 @@ void_expensive IBUSProcess::init() {
             logger->error("Failed to load thr_ch: ", config_thr_ch.error());
             return std::unexpected(config_thr_ch.error());
         }
+        std::expected<int, Error> config_s_arm_ch = get_from_json<int>(config.value(), {"Output","IBUS","mapping","s_arm"}, "PWMProcess::init");
+        if (!config_s_arm_ch) {
+            logger->error("Failed to load s_arm_ch: ", config_s_arm_ch.error());
+            return std::unexpected(config_s_arm_ch.error());
+        }
         
         
         // conversion
@@ -181,12 +187,18 @@ void_expensive IBUSProcess::init() {
             logger->error("Conversion error");
             return std::unexpected(Error(thr_ch.error(), "PWMProcess::init"));
         }
+        auto s_arm_ch = to_uint8(config_s_arm_ch.value());
+        if (!s_arm_ch) {
+            logger->error("Conversion error");
+            return std::unexpected(Error(s_arm_ch.error(), "PWMProcess::init"));
+        }
         
         ibus = std::make_unique<IBUS>(
             device,
             ele_ch.value(),
             ail_ch.value(),
-            thr_ch.value()
+            thr_ch.value(),
+            s_arm_ch.value()
         );
 
         state = ProcessState::READY;

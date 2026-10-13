@@ -8,7 +8,7 @@
 
 
 /*
-Gets con
+Loads config/hardware.json
 */
 std::expected<nlohmann::json, Error> get_hardware_config() {
     std::ifstream f(CONFIG_PATH_HW);

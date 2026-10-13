@@ -12,6 +12,7 @@
 
 #define LOGGER_PWM_NAME "PWM"
 #define LOGGER_IBUS_NAME "IBUS"
+#define LOGGER_IMU_NAME "IMU"
 #define LOGGER_PROCESS_LEVEL spdlog::level::trace
 #define Q_CTRL_SIZE 10
 
@@ -72,4 +73,8 @@ class IBUSProcess: public Process {
         void_expensive init() override;
         void operator()() override;
         void stop() override;
+};
+
+class IMUProcess: public Process {
+    
 };

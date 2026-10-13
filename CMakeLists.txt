@@ -17,6 +17,7 @@ add_subdirectory(extern/ibus)
 add_subdirectory(extern/PiPCA9685)
 add_subdirectory(extern/json)
 add_subdirectory(extern/spdlog)
+#add_subdirectory(extern/MPU9250-RPi)
 
 add_executable(main
     # Main program
@@ -45,3 +46,6 @@ target_link_libraries(main PRIVATE PiPCA9685::PiPCA9685)
 target_link_libraries(main PRIVATE nlohmann_json::nlohmann_json)
 target_link_libraries(main PRIVATE spdlog::spdlog)
 target_link_libraries(main PRIVATE Boost::headers)
+target_include_directories(main PRIVATE
+    extern/MPU9250-RPi/include
+)

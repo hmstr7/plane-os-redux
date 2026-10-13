@@ -1,7 +1,10 @@
 #include "io.hpp"
 #include <cstdint>
+#include "MPU9250.h"
 #include "PiPCA9685/PCA9685.h"
 #include "spdlog/spdlog.h"
+#include <expected>
+#include <memory>
 #include <string>
 #include "common.hpp"
 #include "errors.hpp"
@@ -37,17 +40,32 @@ Executes given control sequence.
 Warning: performance critical!
 */
 void_cheap PWM::execute(Control& control_sequence) {
-    double throttle = (double) control_sequence.throttle/1000;
-    board->set_pwm_ms(l_thr_ch, throttle);
-    board->set_pwm_ms(r_thr_ch, throttle);
+    static uint16_t s_arm_buff = 0;
+
+    if (control_sequence.s_arm > SWITCH_MIDDLE) {
+        if (control_sequence.s_arm != s_arm_buff) {
+            logger->info("Armed");
+        }
+        
+        double throttle = (double) control_sequence.throttle/1000;
+        board->set_pwm_ms(l_thr_ch, throttle);
+        board->set_pwm_ms(r_thr_ch, throttle);
+    } else {
+        if (control_sequence.s_arm != s_arm_buff) {
+            logger->info("Disarmed");
+        }
+        board->set_pwm_ms(l_thr_ch, (double) DISARMED_THR / 1000);
+        board->set_pwm_ms(r_thr_ch, (double) DISARMED_THR / 1000);
+    }
+    s_arm_buff = control_sequence.s_arm;
 
     double elevator = (double) control_sequence.elevator/1000;
     board->set_pwm_ms(ele_ch, elevator);
 
-    double l_aileron = (double) control_sequence.aileron/1000;
-    double r_aileron = 3.0 - l_aileron;
-    board->set_pwm_ms(l_ail_ch, l_aileron);
-    board->set_pwm_ms(r_ail_ch, r_aileron);
+    double aileron = (double) control_sequence.aileron/1000;
+    // double r_aileron = 3.0 - l_aileron; <- redundant, because servos are mirrored physically, so no need to invert
+    board->set_pwm_ms(l_ail_ch, aileron);
+    board->set_pwm_ms(r_ail_ch, aileron);
     return {};
 }
 
@@ -55,8 +73,9 @@ IBUS::IBUS(
     std::string device,
     uint8_t ele_ch, 
     uint8_t ail_ch, 
-    uint8_t thr_ch
-): device(device), ele_ch(ele_ch), ail_ch(ail_ch), thr_ch(thr_ch) {
+    uint8_t thr_ch,
+    uint8_t s_arm_ch
+): device(device), ele_ch(ele_ch), ail_ch(ail_ch), thr_ch(thr_ch), s_arm_ch(s_arm_ch) {
     logger = spdlog::get(LOGGER_IBUS_NAME);
     if (!logger) {
         logger = spdlog::default_logger(); // TODO proper fallback
@@ -84,7 +103,12 @@ void_expensive IBUS::start(control_queue_t* q_ctrl) {
         return std::unexpected(Error(InitError, "IBUS::start/IBUS::IBUS"));
     }
 
-    ibus_set_channel_handler(context, handler, this);
+    if (ibus_set_channel_handler(context, handler, this)) {
+        return {};
+    } else {
+        logger->error("Could not start ibus handler.");
+        return std::unexpected(Error(InitError, "IBUS::start"));
+    }
     
     return {};
 }
@@ -117,7 +141,40 @@ void IBUS::handler(ibus_channel_t*  channels_raw, void* cookie) {
         Control(
             channels_raw[self->ele_ch].value,
             channels_raw[self->ail_ch].value,
-            channels_raw[self->thr_ch].value
+            channels_raw[self->thr_ch].value,
+            channels_raw[self->s_arm_ch].value
         )
     );
+}
+
+
+
+IMU::IMU(uint16_t addr): addr(addr) {
+    // logger = spdlog::get(LOGGER_IMU_NAME);
+
+    // if (!logger) {
+    //     logger = spdlog::default_logger(); // TODO proper fallback
+    // }
+
+    // board = std::make_unique<MPU9250>();
+    // board->setup(addr);
+    // if (!board->isConnectedMPU9250()) {
+    //     logger->error("IMU not connected (address: {})", addr);
+    // }    
+
+    // not implemented
+}
+IMU::~IMU() {
+    // possible deinit?
+}
+
+std::expected<RatesRead, ErrorType> IMU::read() {
+    // board->update();
+    // float x = board->getAccX();
+    // float y = board->getAccY();
+    // float z = board->getAccZ();
+    
+    // RatesRead rates = RatesRead();
+    // return rates;
+    return RatesRead(); // not implemented
 }
