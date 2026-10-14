@@ -40,6 +40,7 @@ void Core::process_manager() {
 
     switch (this->core_state.prog) {
         case IDLE: {
+            this->logger->trace("Loading IDLE program");
             // Add required processes
             procs.push_back(std::make_shared<IBUSProcess>(shared_mem));
             procs.push_back(std::make_shared<PWMProcess>(shared_mem));
@@ -71,8 +72,10 @@ void Core::process_manager() {
             }
 
             core_state.fstate = FlightState::OPERATIONAL;
+            break;
         }
         case SIMPLE: {
+            this->logger->trace("Loading SIMPLE program");
             // Add required processes
             procs.push_back(std::make_shared<IBUSProcess>(shared_mem));
             procs.push_back(std::make_shared<PWMProcess>(shared_mem));
@@ -83,7 +86,7 @@ void Core::process_manager() {
                 auto init_res = proc->init();
                 if (!init_res) {
                     // TODO advanced error handling
-                    logger->error("Init failed for {}", typeid(proc).name());
+                    logger->error("Init failed for {}", typeid(*proc).name());
                     return;
                 }
             }
@@ -104,9 +107,11 @@ void Core::process_manager() {
             }
 
             core_state.fstate = FlightState::OPERATIONAL;
+            break;
         }
         default:
             this->logger->critical("Subprogram is invalid or not implemented.");
+            return;
     }
     
 

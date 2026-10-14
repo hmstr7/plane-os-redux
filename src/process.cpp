@@ -254,16 +254,20 @@ void_expensive Middleman::init() {
     switch (this->shared_mem.middleman_mode) {
         case STANDBY:
             this->logger->info("The middleman is in standby.");
+            break;
         case PASSTHROUGH:
             this->logger->warn("The middleman is in the passthrough mode at init.");
+            break;
         case RATE_STAB:
             this->logger->warn("The middleman is in the rate stabilisation mode at init.");
+            break;
         default:
             this->logger->error("The middleman is set to an unimplemented or invalid mode at init, aborting");
             this->state = FAILURE;
             return std::unexpected<Error>(Error(ErrorType::InitError,"Unknown middleman mode at init."));
     } 
     this->state = READY;
+    this->logger->info("Initialized successfully");
 }
 
 void Middleman::operator()() {
@@ -282,6 +286,8 @@ void Middleman::operator()() {
                     this->logger->info("Standby");
                 }
                 // do nothing
+                lastm = STANDBY;
+                break;
             case PASSTHROUGH: {
                 if (lastm != PASSTHROUGH) {
                     this->logger->info("Passthrough mode");
@@ -292,16 +298,21 @@ void Middleman::operator()() {
                     this->shared_mem.q_input.pop_front();
                     ctrl_buff = sel_ctrl;
                 }
+                lastm = PASSTHROUGH;
+                break;
             }
             case RATE_STAB:
                 if (lastm != RATE_STAB) {
                         this->logger->info("Rate stabilisation mode");
                 } 
                 // TODO: not implemented
+                lastm = RATE_STAB;
+                break;
             default:
                 this->logger->error("The middleman is set to an unimplemented or invalid mode, falling back to standby.");
                 this->shared_mem.middleman_mode = STANDBY;
                 // ? This may be bad
+                break;
         } 
     }
 }
