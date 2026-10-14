@@ -268,6 +268,7 @@ void_expensive Middleman::init() {
     } 
     this->state = READY;
     this->logger->info("Initialized successfully");
+    return {};
 }
 
 void Middleman::operator()() {
@@ -292,6 +293,10 @@ void Middleman::operator()() {
                 if (lastm != PASSTHROUGH) {
                     this->logger->info("Passthrough mode");
                 }
+		if (this->shared_mem.q_input.empty()) {
+		    // nothing to do
+		    break;
+		};
                 Control sel_ctrl = this->shared_mem.q_input.front();
                 if (sel_ctrl != ctrl_buff) {
                     this->shared_mem.q_output.push_back(sel_ctrl); 

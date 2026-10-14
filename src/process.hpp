@@ -15,8 +15,8 @@
 #define LOGGER_IMU_NAME "IMU"
 #define LOGGER_MIDDLEMAN_NAME "MIDDLEMAN"
 #define LOGGER_PROCESS_LEVEL spdlog::level::trace
-#define Q_IN_SIZE 10
-#define Q_OUT_SIZE 10
+#define Q_IN_SIZE 100
+#define Q_OUT_SIZE 100
 
 #define INIT_CLASS_LOGGER logger = spdlog::get(class_logger_name); \
     if (!logger) { \

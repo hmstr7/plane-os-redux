@@ -40,11 +40,16 @@ Executes given control sequence.
 * Warning: performance critical!
 */
 void_cheap PWM::execute(Control& control_sequence) {
+    // TODO temporary fix
+    if (control_sequence.elevator == 0 || control_sequence.aileron == 0 || control_sequence.throttle == 0 || control_sequence.s_arm == 0) {
+	logger->warn("Invalid Control, dropping");
+        return {};
+    }
     static uint16_t s_arm_buff = 0;
 
     if (control_sequence.s_arm > SWITCH_MIDDLE) {
         if (control_sequence.s_arm != s_arm_buff) {
-            logger->info("Armed");
+          logger->info("Armed");
         }
         
         double throttle = (double) control_sequence.throttle/1000;
@@ -65,6 +70,7 @@ void_cheap PWM::execute(Control& control_sequence) {
     double aileron = (double) control_sequence.aileron/1000;
     board->set_pwm_ms(l_ail_ch, aileron);
     board->set_pwm_ms(r_ail_ch, aileron);
+    logger->trace("out {},{},{},{}", control_sequence.elevator, control_sequence.aileron, control_sequence.throttle, control_sequence.s_arm);
     return {};
 }
 
@@ -135,7 +141,7 @@ void IBUS::handler(ibus_channel_t*  channels_raw, void* cookie) {
         self->logger->warn("Input value of 0 detected! IBUS may be dead");
         return;
     }
-
+    self->logger->trace("in {},{},{},{}",channels_raw[self->ele_ch].value, channels_raw[self->ail_ch].value, channels_raw[self->thr_ch].value, channels_raw[self->s_arm_ch].value);
     self->q_input->push_back(
         Control(
             channels_raw[self->ele_ch].value,

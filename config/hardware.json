@@ -5,8 +5,8 @@
             "mapping":{
                 "ele":1,
                 "ail":2,
-                "thr":7,
-                "s_arm":9
+                "thr":6,
+                "s_arm":7
             }
         },
         "PWM":{
