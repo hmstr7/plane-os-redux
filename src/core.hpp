@@ -19,7 +19,7 @@ class Core {
         
         Core();
 
-        void init();
+        void init(Subprogram load_prog);
         void process_manager();
         void deinit();
 

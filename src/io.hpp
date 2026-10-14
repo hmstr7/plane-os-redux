@@ -54,7 +54,7 @@ class IBUS {
         const uint8_t ail_ch;
         const uint8_t thr_ch;
         const uint8_t s_arm_ch;
-        control_queue_t* q_ctrl = nullptr;
+        control_queue_t* q_input = nullptr;
 
         static void handler(ibus_channel_t* channels_raw, void* cookie);
     public:

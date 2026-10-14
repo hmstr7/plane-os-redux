@@ -2,28 +2,35 @@
 #include <cstdint>
 #include <boost/circular_buffer.hpp>
 
-#define ALLOWED_DEVIATION 5
+#define ALLOWED_DEVIATION 20
 #define CONTROL_SURFACE_NEUTRAL 1500
 #define THR_NEUTRAL 1000
 #define DISARMED 1000
 #define DISARMED_THR 1000
 #define SWITCH_MIDDLE 1500
+#define SWITCH_OFF 1000
 
-
+/*
+State of the vehicle
+*/
 enum FlightState {
-    NONE,
-    INIT,
-    OPERATIONAL,
-    DEINIT
-};
-enum FlightMode {
-    UNINIT,
-    SIMPLE,
-    STABILIZED
+    NONE, // unset / uninitialized
+    INIT, // initialized
+    OPERATIONAL, // currently operating
+    DEINIT // deinitialization
 };
 
 /*
-Control sequence that consists of 3 values ranging from 1000 to 2000
+Flight Sub-Program
+*/
+enum Subprogram {
+    IDLE, // Do nothing
+    SIMPLE, // No stabilisation possible
+    FULL // Able to switch between modes
+};
+
+/*
+Control sequence that consists of 4 values ranging from 1000 to 2000
 */
 struct Control {
     uint16_t elevator;
@@ -55,17 +62,24 @@ struct Control {
             this->s_arm = s_arm;
         }
     };
+    inline bool operator==(Control& other) {
+        return ((this->elevator==other.elevator) && (this->aileron==other.aileron) && (this->throttle==other.throttle) && (this->s_arm==other.s_arm));
+    };
 };
-
-typedef boost::circular_buffer<Control> control_queue_t;
-
-struct State {
-    enum FlightState fstate;
-    enum FlightMode mode;
-};
-
+#define CONTROL_NEUTRAL Control(CONTROL_SURFACE_NEUTRAL,CONTROL_SURFACE_NEUTRAL,THR_NEUTRAL,SWITCH_OFF)
+/*
+Angular velocity reads produced by IMU
+*/
 struct RatesRead {
     float x;
     float y;
     float z;
 };
+
+typedef boost::circular_buffer<Control> control_queue_t; // Control queue (ex. q_input or q_output) is a ring buffer of Control objects, the new ones being appended to the end while the oldest ones are being read and deleted from the front.
+
+struct State {
+    enum FlightState fstate;
+    enum Subprogram prog;
+};
+

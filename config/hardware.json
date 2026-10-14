@@ -3,20 +3,20 @@
         "IBUS":{
             "device":"/dev/ttyS5",
             "mapping":{
-                "ele":0,
-                "ail":1,
-                "thr":2,
-                "s_arm":3
+                "ele":1,
+                "ail":2,
+                "thr":7,
+                "s_arm":9
             }
         },
         "PWM":{
             "device":"/dev/i2c-3",
             "mapping":{
-                "ele":0,
-                "l_ail":1,
-                "r_ail":2,
-                "l_thr":3,
-                "r_thr":4
+                "ele":9,
+                "l_ail":13,
+                "r_ail":8,
+                "l_thr":4,
+                "r_thr":5
             }
         }
     }

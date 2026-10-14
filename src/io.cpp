@@ -37,7 +37,7 @@ PWM::PWM(
 
 /*
 Executes given control sequence.
-Warning: performance critical!
+* Warning: performance critical!
 */
 void_cheap PWM::execute(Control& control_sequence) {
     static uint16_t s_arm_buff = 0;
@@ -63,7 +63,6 @@ void_cheap PWM::execute(Control& control_sequence) {
     board->set_pwm_ms(ele_ch, elevator);
 
     double aileron = (double) control_sequence.aileron/1000;
-    // double r_aileron = 3.0 - l_aileron; <- redundant, because servos are mirrored physically, so no need to invert
     board->set_pwm_ms(l_ail_ch, aileron);
     board->set_pwm_ms(r_ail_ch, aileron);
     return {};
@@ -95,8 +94,8 @@ IBUS::~IBUS() {
 /*
 Start pushing controls to q_ctrl
 */
-void_expensive IBUS::start(control_queue_t* q_ctrl) {
-    this->q_ctrl = q_ctrl;
+void_expensive IBUS::start(control_queue_t* q_input) {
+    this->q_input = q_input;
 
     if (!context) {
         logger->error("Context was not set. Possible errors during construction");
@@ -123,7 +122,7 @@ Warning: performance critical!
 void IBUS::handler(ibus_channel_t*  channels_raw, void* cookie) {
     auto* self = static_cast<IBUS*>(cookie);
 
-    if ((!self) || (!self->q_ctrl)) {
+    if ((!self) || (!self->q_input)) {
         if (self) {
             self->logger->error("Control Queue not found in IBUS io handler.");
         } else {
@@ -137,7 +136,7 @@ void IBUS::handler(ibus_channel_t*  channels_raw, void* cookie) {
         return;
     }
 
-    self->q_ctrl->push_back(
+    self->q_input->push_back(
         Control(
             channels_raw[self->ele_ch].value,
             channels_raw[self->ail_ch].value,

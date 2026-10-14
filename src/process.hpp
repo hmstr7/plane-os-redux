@@ -13,8 +13,10 @@
 #define LOGGER_PWM_NAME "PWM"
 #define LOGGER_IBUS_NAME "IBUS"
 #define LOGGER_IMU_NAME "IMU"
+#define LOGGER_MIDDLEMAN_NAME "MIDDLEMAN"
 #define LOGGER_PROCESS_LEVEL spdlog::level::trace
-#define Q_CTRL_SIZE 10
+#define Q_IN_SIZE 10
+#define Q_OUT_SIZE 10
 
 #define INIT_CLASS_LOGGER logger = spdlog::get(class_logger_name); \
     if (!logger) { \
@@ -31,8 +33,20 @@ enum ProcessState {
     STOPPED
 };
 
+enum MiddlemanMode {
+    NOT_SET,
+    STANDBY,
+    PASSTHROUGH,
+    RATE_STAB
+};
+
 struct Shared {
-    control_queue_t q_ctrl{Q_CTRL_SIZE}; // TODO replace later with q_input and q_output
+    control_queue_t q_input{Q_IN_SIZE};
+    control_queue_t q_output{Q_OUT_SIZE};
+
+    MiddlemanMode middleman_mode = STANDBY;
+    bool mmode_user_allowed = false;
+
     std::vector<spdlog::sink_ptr> sinks;
 };
 
@@ -77,4 +91,16 @@ class IBUSProcess: public Process {
 
 class IMUProcess: public Process {
     
+};
+
+class Middleman: public Process {
+    private:
+        bool running = false;
+        Control ctrl_buff = Control(0,0,0,0);
+        MiddlemanMode lastm = NOT_SET;
+    public:
+        Middleman(Shared& shared_mem);
+        void_expensive init() override;
+        void operator()() override;
+        void stop() override;
 };

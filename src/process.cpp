@@ -109,12 +109,18 @@ void PWMProcess::operator()() {
         return;
     }
     while(state == ProcessState::RUNNING) {
-        Control current_control = shared_mem.q_ctrl.front();
+        Control current_control = shared_mem.q_output.front();
         void_cheap exec_res = pwm_board->execute(current_control);
         if (!exec_res) {
             logger->error("Failed to execute control sequence: {}", ErrorTypeToStr.at(exec_res.error()));
             state = ProcessState::FAILURE;
         }
+        shared_mem.q_output.pop_front();
+    }
+    if (!this->shared_mem.q_output.empty()) {
+        // ? this behaviour probably needs to be changed later
+        Control current_control = CONTROL_NEUTRAL;
+        void_cheap exec_res = pwm_board->execute(current_control);
     }
     logger->trace("PWM thread stopped.");
 }
@@ -217,7 +223,7 @@ void IBUSProcess::operator()() {
         logger->error("Run process.init() before starting a thread!");
         return;
     }
-    void_expensive start_res = this->ibus->start(&(shared_mem.q_ctrl));
+    void_expensive start_res = this->ibus->start(&(shared_mem.q_input));
     if (!start_res) {
         logger->error("Could not start handling IBUS packets: ", start_res.error());
         state = ProcessState::FAILURE;
@@ -235,4 +241,83 @@ void IBUSProcess::stop() {
     this->ibus = nullptr;
     this->state = ProcessState::STOPPED;
 }
+
+
+
+Middleman::Middleman(Shared& shared_mem): Process(shared_mem) {
+    class_logger_name = LOGGER_MIDDLEMAN_NAME;
+    INIT_CLASS_LOGGER
+}
+
+void_expensive Middleman::init() {
+    this->logger->trace("Init");
+    switch (this->shared_mem.middleman_mode) {
+        case STANDBY:
+            this->logger->info("The middleman is in standby.");
+        case PASSTHROUGH:
+            this->logger->warn("The middleman is in the passthrough mode at init.");
+        case RATE_STAB:
+            this->logger->warn("The middleman is in the rate stabilisation mode at init.");
+        default:
+            this->logger->error("The middleman is set to an unimplemented or invalid mode at init, aborting");
+            this->state = FAILURE;
+            return std::unexpected<Error>(Error(ErrorType::InitError,"Unknown middleman mode at init."));
+    } 
+    this->state = READY;
+}
+
+void Middleman::operator()() {
+    this->state = RUNNING;
+    while (this->state == RUNNING) {
+        if (this->shared_mem.mmode_user_allowed) {
+            // TODO Real time mode switching should be done when the stabilisation is finished
+        }
+        switch (this->shared_mem.middleman_mode) {
+            case STANDBY:
+                if (lastm == PASSTHROUGH || lastm == RATE_STAB) {
+                    // Output has to be reset to a neutral position
+                    this->logger->info("Standby");
+                    this->shared_mem.q_output.push_back(CONTROL_NEUTRAL);
+                } else if (lastm == STANDBY) {} else {
+                    this->logger->info("Standby");
+                }
+                // do nothing
+            case PASSTHROUGH: {
+                if (lastm != PASSTHROUGH) {
+                    this->logger->info("Passthrough mode");
+                }
+                Control sel_ctrl = this->shared_mem.q_input.front();
+                if (sel_ctrl != ctrl_buff) {
+                    this->shared_mem.q_output.push_back(sel_ctrl); 
+                    this->shared_mem.q_input.pop_front();
+                    ctrl_buff = sel_ctrl;
+                }
+            }
+            case RATE_STAB:
+                if (lastm != RATE_STAB) {
+                        this->logger->info("Rate stabilisation mode");
+                } 
+                // TODO: not implemented
+            default:
+                this->logger->error("The middleman is set to an unimplemented or invalid mode, falling back to standby.");
+                this->shared_mem.middleman_mode = STANDBY;
+                // ? This may be bad
+        } 
+    }
+}
+
+void Middleman::stop() {
+    if (this->state == STOPPED) {
+        logger->warn("Process already stopped");
+        return;
+    }
+    logger->trace("Stopping process");
+    if (lastm == PASSTHROUGH || lastm == RATE_STAB) {
+        logger->trace("Sending neutral control object");
+        this->shared_mem.q_output.push_back(CONTROL_NEUTRAL);
+    }
+    this->state = STOPPED;
+}
+
+
 

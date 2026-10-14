@@ -17,16 +17,14 @@
 Core::Core() {
     logger = spdlog::default_logger();
     logger->set_level(LOGGER_CORE_LEVEL);
-
-
 }
 
 
 
-void Core::init() {
+void Core::init(Subprogram load_prog) {
     // TODO init
-    ;
     core_state.fstate = FlightState::INIT;
+    core_state.prog = load_prog;
 }
 
 void Core::process_manager() {
@@ -40,13 +38,14 @@ void Core::process_manager() {
         return;
     }
 
-    // initialize Process objects
-    switch (core_state.mode) {
-        case FlightMode::SIMPLE: {
+    switch (this->core_state.prog) {
+        case IDLE: {
             // Add required processes
             procs.push_back(std::make_shared<IBUSProcess>(shared_mem));
             procs.push_back(std::make_shared<PWMProcess>(shared_mem));
+            procs.push_back(std::make_shared<Middleman>(shared_mem));
 
+            // Initialize processes
             for (auto& proc : procs) {
                 auto init_res = proc->init();
                 if (!init_res) {
@@ -56,6 +55,11 @@ void Core::process_manager() {
                 }
             }
             
+            // Config
+            shared_mem.middleman_mode = STANDBY;
+            shared_mem.mmode_user_allowed = false;
+
+            // Launch processes
             std::vector<std::thread> threads;
 
             for (auto& proc : procs) {
@@ -67,35 +71,66 @@ void Core::process_manager() {
             }
 
             core_state.fstate = FlightState::OPERATIONAL;
+        }
+        case SIMPLE: {
+            // Add required processes
+            procs.push_back(std::make_shared<IBUSProcess>(shared_mem));
+            procs.push_back(std::make_shared<PWMProcess>(shared_mem));
+            procs.push_back(std::make_shared<Middleman>(shared_mem));
 
-
-            // Watchdog loop
-            while (core_state.fstate == FlightState::OPERATIONAL) {
-                for (auto& proc : procs) {
-                    if (proc->state == ProcessState::FAILURE) {
-                        // TODO handle failed process here
-                        logger->error("Process {} failed.", typeid(proc).name());  // TEMPORARY
-                        core_state.fstate = FlightState::DEINIT;
-                        break;
-                    } else if (proc->state == ProcessState::STOPPED) {
-                        logger->info("Process {} stopped.", typeid(proc).name());
-                        // TODO handle stopped process here
-                        core_state.fstate = FlightState::DEINIT;
-                        break;
-                    }
+            // Initialize processes
+            for (auto& proc : procs) {
+                auto init_res = proc->init();
+                if (!init_res) {
+                    // TODO advanced error handling
+                    logger->error("Init failed for {}", typeid(proc).name());
+                    return;
                 }
-                std::this_thread::sleep_for(PROCESS_MGR_SLEEP);
             }
+            
+            // Config
+            shared_mem.middleman_mode = PASSTHROUGH;
+            shared_mem.mmode_user_allowed = false;
+
+            // Launch processes
+            std::vector<std::thread> threads;
+
+            for (auto& proc : procs) {
+                threads.push_back(std::thread(std::ref(*proc)));
+            }
+
+            for (auto& thread : threads) {
+                thread.detach();
+            }
+
+            core_state.fstate = FlightState::OPERATIONAL;
         }
         default:
-            // TODO handle not implemented
-            logger->critical("Flight mode not implemented"); // TEMPORARY
+            this->logger->critical("Subprogram is invalid or not implemented.");
     }
-    deinit();
+    
+
+    // Watchdog loop
+    while (core_state.fstate == FlightState::OPERATIONAL) {
+        for (auto& proc : procs) {
+            if (proc->state == ProcessState::FAILURE) {
+                // TODO handle failed process here
+                logger->error("Process {} failed.", typeid(proc).name());  // TEMPORARY
+                core_state.fstate = FlightState::DEINIT;
+                break;
+            } else if (proc->state == ProcessState::STOPPED) {
+                logger->info("Process {} stopped.", typeid(proc).name());
+                // TODO handle stopped process here
+                core_state.fstate = FlightState::DEINIT;
+                break;
+            }
+        }
+        std::this_thread::sleep_for(PROCESS_MGR_SLEEP);
+    }
 }
 
 void Core::deinit() {
-    logger->trace("Core deinit");
+    logger->info("System shutting down...");
 
     core_state.fstate = DEINIT;
 
