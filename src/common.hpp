@@ -39,27 +39,27 @@ struct Control {
     uint16_t s_arm;
     static constexpr uint16_t min = (1000-ALLOWED_DEVIATION);
     static constexpr uint16_t max = (2000+ALLOWED_DEVIATION);
-    inline Control(uint16_t ele, uint16_t ail, uint16_t thr, uint16_t s_arm) {
+    inline Control(uint16_t ele, uint16_t ail, uint16_t thr, uint16_t s_arm_in) {
         // Failsafe
         if (ele < min || ele > max) {
             elevator=CONTROL_SURFACE_NEUTRAL;
         } else {
             elevator = ele;
         }
-        if (ail < min || ail > min) {
+        if (ail < min || ail > max) {
             aileron=CONTROL_SURFACE_NEUTRAL;
         } else {
             aileron = ail;
         }
-        if (thr < min || thr > min) {
-            elevator=THR_NEUTRAL;
+        if (thr < min || thr > max) {
+            throttle=THR_NEUTRAL;
         } else {
             throttle = thr;
         }
         if (s_arm < min || s_arm > max) {
             s_arm = DISARMED;
         } else {
-            this->s_arm = s_arm;
+            this->s_arm = s_arm_in;
         }
     };
     inline bool operator==(Control& other) {
