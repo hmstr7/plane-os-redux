@@ -54,7 +54,8 @@ class IBUS {
         const uint8_t ail_ch;
         const uint8_t thr_ch;
         const uint8_t s_arm_ch;
-        control_queue_t* q_input = nullptr;
+        Control* c_input = nullptr;
+        std::mutex* c_input_mut = nullptr;
 
         static void handler(ibus_channel_t* channels_raw, void* cookie);
     public:
@@ -66,7 +67,7 @@ class IBUS {
             uint8_t s_arm_ch
         );
         ~IBUS();
-        void_expensive start(control_queue_t* q_ctrl);
+        void_expensive start(Control* c_input_in, std::mutex* c_input_mut_in);
 };
 
 class IMU {

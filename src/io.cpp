@@ -100,8 +100,9 @@ IBUS::~IBUS() {
 /*
 Start pushing controls to q_ctrl
 */
-void_expensive IBUS::start(control_queue_t* q_input) {
-    this->q_input = q_input;
+void_expensive IBUS::start(Control* c_input_in, std::mutex* c_input_mut_in) {
+    this->c_input = c_input_in;
+    this->c_input_mut = c_input_mut_in;
 
     if (!context) {
         logger->error("Context was not set. Possible errors during construction");
@@ -128,7 +129,7 @@ Warning: performance critical!
 void IBUS::handler(ibus_channel_t*  channels_raw, void* cookie) {
     auto* self = static_cast<IBUS*>(cookie);
 
-    if ((!self) || (!self->q_input)) {
+    if ((!self) || (!self->c_input)) {
         if (self) {
             self->logger->error("Control Queue not found in IBUS io handler.");
         } else {
@@ -142,14 +143,14 @@ void IBUS::handler(ibus_channel_t*  channels_raw, void* cookie) {
         return;
     }
     self->logger->trace("in {},{},{},{}",channels_raw[self->ele_ch].value, channels_raw[self->ail_ch].value, channels_raw[self->thr_ch].value, channels_raw[self->s_arm_ch].value);
-    self->q_input->push_back(
-        Control(
-            channels_raw[self->ele_ch].value,
-            channels_raw[self->ail_ch].value,
-            channels_raw[self->thr_ch].value,
-            channels_raw[self->s_arm_ch].value
-        )
+    self->c_input_mut->lock();
+    *(self->c_input) = Control(
+        channels_raw[self->ele_ch].value, 
+        channels_raw[self->ail_ch].value, 
+        channels_raw[self->thr_ch].value, 
+        channels_raw[self->s_arm_ch].value
     );
+    self->c_input_mut->unlock();
 }
 
 

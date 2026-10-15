@@ -109,18 +109,14 @@ void PWMProcess::operator()() {
         return;
     }
     while(state == ProcessState::RUNNING) {
-        Control current_control = shared_mem.q_output.front();
+        shared_mem.c_output_mut.lock();
+        Control current_control = shared_mem.c_output;
+        shared_mem.c_output_mut.unlock();
         void_cheap exec_res = pwm_board->execute(current_control);
         if (!exec_res) {
             logger->error("Failed to execute control sequence: {}", ErrorTypeToStr.at(exec_res.error()));
             state = ProcessState::FAILURE;
         }
-        shared_mem.q_output.pop_front();
-    }
-    if (!this->shared_mem.q_output.empty()) {
-        // ? this behaviour probably needs to be changed later
-        Control current_control = CONTROL_NEUTRAL;
-        void_cheap exec_res = pwm_board->execute(current_control);
     }
     logger->trace("PWM thread stopped.");
 }
@@ -223,7 +219,7 @@ void IBUSProcess::operator()() {
         logger->error("Run process.init() before starting a thread!");
         return;
     }
-    void_expensive start_res = this->ibus->start(&(shared_mem.q_input));
+    void_expensive start_res = this->ibus->start(&(shared_mem.c_input), &(shared_mem.c_input_mut));
     if (!start_res) {
         logger->error("Could not start handling IBUS packets: ", start_res.error());
         state = ProcessState::FAILURE;
@@ -282,7 +278,10 @@ void Middleman::operator()() {
                 if (lastm == PASSTHROUGH || lastm == RATE_STAB) {
                     // Output has to be reset to a neutral position
                     this->logger->info("Standby");
-                    this->shared_mem.q_output.push_back(CONTROL_NEUTRAL);
+
+                    this->shared_mem.c_output_mut.lock();
+                    this->shared_mem.c_output = CONTROL_NEUTRAL;
+                    this->shared_mem.c_output_mut.unlock();
                 } else if (lastm == STANDBY) {} else {
                     this->logger->info("Standby");
                 }
@@ -293,16 +292,13 @@ void Middleman::operator()() {
                 if (lastm != PASSTHROUGH) {
                     this->logger->info("Passthrough mode");
                 }
-		if (this->shared_mem.q_input.empty()) {
-		    // nothing to do
-		    break;
-		};
-                Control sel_ctrl = this->shared_mem.q_input.front();
-                if (sel_ctrl != ctrl_buff) {
-                    this->shared_mem.q_output.push_back(sel_ctrl); 
-                    this->shared_mem.q_input.pop_front();
-                    ctrl_buff = sel_ctrl;
+                
+                this->shared_mem.c_input_mut.lock();
+                if (this->shared_mem.c_input != ctrl_buff) {
+                    this->shared_mem.c_output = this->shared_mem.c_input; 
+                    ctrl_buff = this->shared_mem.c_input;
                 }
+                this->shared_mem.c_input_mut.unlock();
                 lastm = PASSTHROUGH;
                 break;
             }
@@ -330,7 +326,9 @@ void Middleman::stop() {
     logger->trace("Stopping process");
     if (lastm == PASSTHROUGH || lastm == RATE_STAB) {
         logger->trace("Sending neutral control object");
-        this->shared_mem.q_output.push_back(CONTROL_NEUTRAL);
+        this->shared_mem.c_output_mut.lock();
+        this->shared_mem.c_output = CONTROL_NEUTRAL;
+        this->shared_mem.c_output_mut.unlock();
     }
     this->state = STOPPED;
 }

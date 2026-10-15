@@ -41,8 +41,8 @@ enum MiddlemanMode {
 };
 
 struct Shared {
-    control_queue_t q_input{Q_IN_SIZE};
-    control_queue_t q_output{Q_OUT_SIZE};
+    Control c_input = CONTROL_NEUTRAL; std::mutex c_input_mut;
+    Control c_output = CONTROL_NEUTRAL; std::mutex c_output_mut;
 
     MiddlemanMode middleman_mode = STANDBY;
     bool mmode_user_allowed = false;
