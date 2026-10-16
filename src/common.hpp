@@ -2,6 +2,11 @@
 #include <cstdint>
 #include <boost/circular_buffer.hpp>
 
+#define LOGDIR "logs/"
+#define FLIGHTLOGPREFIX "flightlog"
+#define FLIGHTLOGFILEXT ".csv"
+#define FLIGHTLOGHEADER "t,ele,ail,thr,s_arm"
+
 #define ALLOWED_DEVIATION 20
 #define CONTROL_SURFACE_NEUTRAL 1500
 #define THR_NEUTRAL 1000

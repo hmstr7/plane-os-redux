@@ -45,6 +45,8 @@ class PWM {
 class IBUS {
     private:
         std::shared_ptr<spdlog::logger> logger;
+        std::shared_ptr<spdlog::logger> input_log;
+        std::chrono::time_point<std::chrono::steady_clock>* log_starttime;
 
         ibus_context_t context;
         uart_lowlevel_config ibus_config;
@@ -54,6 +56,7 @@ class IBUS {
         const uint8_t ail_ch;
         const uint8_t thr_ch;
         const uint8_t s_arm_ch;
+
         Control* c_input = nullptr;
         std::mutex* c_input_mut = nullptr;
 
@@ -64,7 +67,8 @@ class IBUS {
             uint8_t ele_ch, 
             uint8_t ail_ch, 
             uint8_t thr_ch,
-            uint8_t s_arm_ch
+            uint8_t s_arm_ch,
+            std::shared_ptr<spdlog::logger> input_log, std::chrono::time_point<std::chrono::steady_clock>* flog_starttime
         );
         ~IBUS();
         void_expensive start(Control* c_input_in, std::mutex* c_input_mut_in);

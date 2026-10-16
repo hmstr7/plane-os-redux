@@ -3,11 +3,15 @@
 #include "errors.hpp"
 #include "helper.hpp"
 #include "io.hpp"
+#include <chrono>
 #include <cstdint>
 #include <expected>
+#include <iomanip>
 #include <memory>
+#include "spdlog/common.h"
 #include "spdlog/logger.h"
 #include "spdlog/spdlog.h"
+#include <sstream>
 #include <string>
 
 
@@ -18,7 +22,7 @@ PWMProcess::PWMProcess(Shared& shared_mem) : Process(shared_mem) {
 
 void_expensive PWMProcess::init() {
     logger->trace("Init"); 
-    if (!initialized) {
+    if (this->state == NOT_READY) {
         // getting values from config
         const auto config = get_hardware_config();
         if (!config) {
@@ -96,7 +100,7 @@ void_expensive PWMProcess::init() {
         logger->info("Initialized successfully");
         return {};
     } else {
-        logger->warn("Already initialized");
+        logger->warn("PWM process is already initialized");
         return {};
     }
 }
@@ -137,8 +141,8 @@ IBUSProcess::IBUSProcess(Shared& shared_mem) : Process(shared_mem) {
 }
 
 void_expensive IBUSProcess::init() {
-    logger->trace("Init"); 
-    if (!initialized) {
+    if (this->state == NOT_READY) {
+        logger->trace("Init"); 
         // getting values from config
         const auto config = get_hardware_config();
         if (!config) {
@@ -195,19 +199,40 @@ void_expensive IBUSProcess::init() {
             return std::unexpected(Error(s_arm_ch.error(), "PWMProcess::init"));
         }
         
+    
+        if (shared_mem.f_logflightdata) {
+            std::ostringstream lfilename;
+            lfilename << LOGDIR;
+            lfilename << FLIGHTLOGPREFIX << "-";
+            // add timestamp
+            auto now = std::chrono::system_clock::now();
+            auto time = std::chrono::system_clock::to_time_t(now);
+            std::tm localTime = *std::localtime(&time);
+            lfilename << std::put_time(&(localTime), "%Y-%m-%d_%H-%M-%S");
+            
+            lfilename << "-input" << FLIGHTLOGFILEXT;
+
+            this->input_log = spdlog::basic_logger_mt<spdlog::async_factory>("input_logger", lfilename.str()); // ! no error handling 
+            this->input_log->set_level(spdlog::level::trace);
+            this->input_log->set_pattern("%v"); // so it is a valid csv
+            this->input_log->trace(FLIGHTLOGHEADER);
+        }
+
         ibus = std::make_unique<IBUS>(
             device,
             ele_ch.value(),
             ail_ch.value(),
             thr_ch.value(),
-            s_arm_ch.value()
+            s_arm_ch.value(),
+            input_log,
+            &(shared_mem.flightlog_starttime)
         );
 
         state = ProcessState::READY;
         logger->info("Initialized successfully");
         return {};
     } else {
-        // Do nothing
+        logger->warn("IBUS process is already initialized");
         return {};
     }
 }
@@ -246,25 +271,31 @@ Middleman::Middleman(Shared& shared_mem): Process(shared_mem) {
 }
 
 void_expensive Middleman::init() {
-    this->logger->trace("Init");
-    switch (this->shared_mem.middleman_mode) {
-        case STANDBY:
-            this->logger->info("The middleman is in standby.");
-            break;
-        case PASSTHROUGH:
-            this->logger->warn("The middleman is in the passthrough mode at init.");
-            break;
-        case RATE_STAB:
-            this->logger->warn("The middleman is in the rate stabilisation mode at init.");
-            break;
-        default:
-            this->logger->error("The middleman is set to an unimplemented or invalid mode at init, aborting");
-            this->state = FAILURE;
-            return std::unexpected<Error>(Error(ErrorType::InitError,"Unknown middleman mode at init."));
-    } 
-    this->state = READY;
-    this->logger->info("Initialized successfully");
-    return {};
+    if (this->state == NOT_READY) {
+        this->logger->trace("Init");
+        switch (this->shared_mem.middleman_mode) {
+            case STANDBY:
+                this->logger->info("The middleman is in standby.");
+                break;
+            case PASSTHROUGH:
+                this->logger->warn("The middleman is in the passthrough mode at init.");
+                break;
+            case RATE_STAB:
+                this->logger->warn("The middleman is in the rate stabilisation mode at init.");
+                break;
+            default:
+                this->logger->error("The middleman is set to an unimplemented or invalid mode at init, aborting");
+                this->state = FAILURE;
+                return std::unexpected<Error>(Error(ErrorType::InitError,"Unknown middleman mode at init."));
+        } 
+        this->state = READY;
+        this->logger->info("Initialized successfully");
+        return {};
+    } else {
+        this->logger->warn("Middleman process is already initialized");
+        return {};
+    }
+    
 }
 
 void Middleman::operator()() {

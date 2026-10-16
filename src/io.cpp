@@ -2,8 +2,10 @@
 #include <cstdint>
 #include "MPU9250.h"
 #include "PiPCA9685/PCA9685.h"
+#include "spdlog/logger.h"
 #include "spdlog/spdlog.h"
 #include <expected>
+#include <iomanip>
 #include <memory>
 #include <string>
 #include "common.hpp"
@@ -79,7 +81,8 @@ IBUS::IBUS(
     uint8_t ele_ch, 
     uint8_t ail_ch, 
     uint8_t thr_ch,
-    uint8_t s_arm_ch
+    uint8_t s_arm_ch,
+    std::shared_ptr<spdlog::logger> input_log, std::chrono::time_point<std::chrono::steady_clock>* flog_starttime
 ): device(device), ele_ch(ele_ch), ail_ch(ail_ch), thr_ch(thr_ch), s_arm_ch(s_arm_ch) {
     logger = spdlog::get(LOGGER_IBUS_NAME);
     if (!logger) {
@@ -88,6 +91,12 @@ IBUS::IBUS(
 
     ibus_config.device = this->device.c_str();
     context = ibus_init(&ibus_config);
+
+    if (input_log) {
+        this->input_log = input_log;
+    }
+    this->log_starttime = flog_starttime;
+
     logger->trace("PWM io module init done");
 }
 
@@ -127,7 +136,9 @@ Important: pass `this` as a cookie in order to give the function access to the c
 Warning: performance critical!
 */
 void IBUS::handler(ibus_channel_t*  channels_raw, void* cookie) {
-    auto* self = static_cast<IBUS*>(cookie);
+    static auto* self = static_cast<IBUS*>(cookie);
+
+    static double t;
 
     if ((!self) || (!self->c_input)) {
         if (self) {
@@ -142,7 +153,19 @@ void IBUS::handler(ibus_channel_t*  channels_raw, void* cookie) {
         self->logger->warn("Input value of 0 detected! IBUS may be dead");
         return;
     }
-    self->logger->trace("in {},{},{},{}",channels_raw[self->ele_ch].value, channels_raw[self->ail_ch].value, channels_raw[self->thr_ch].value, channels_raw[self->s_arm_ch].value);
+
+    if (self->input_log && self->log_starttime) {
+        t = std::chrono::duration<double>(std::chrono::steady_clock::now() - *(self->log_starttime)).count();
+
+        self->input_log->trace("{},{},{},{},{}",
+            t,
+            channels_raw[self->ele_ch].value, 
+            channels_raw[self->ail_ch].value, 
+            channels_raw[self->thr_ch].value, 
+            channels_raw[self->s_arm_ch].value
+        );
+    }
+
     self->c_input_mut->lock();
     *(self->c_input) = Control(
         channels_raw[self->ele_ch].value, 
