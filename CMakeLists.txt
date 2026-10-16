@@ -7,6 +7,7 @@ set(JSON_BuildTests OFF CACHE INTERNAL "")
 project(plane-os-redux LANGUAGES C CXX)
 
 # Global packages
+find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(Boost REQUIRED) # Global because too general and too big
 
 
@@ -46,6 +47,7 @@ target_link_libraries(main PRIVATE PiPCA9685::PiPCA9685)
 target_link_libraries(main PRIVATE nlohmann_json::nlohmann_json)
 target_link_libraries(main PRIVATE spdlog::spdlog)
 target_link_libraries(main PRIVATE Boost::headers)
+target_link_libraries(main PRIVATE Boost::program_options)
 target_include_directories(main PRIVATE
     extern/MPU9250-RPi/include
 )

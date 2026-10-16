@@ -72,7 +72,7 @@ void_cheap PWM::execute(Control& control_sequence) {
     double aileron = (double) control_sequence.aileron/1000;
     board->set_pwm_ms(l_ail_ch, aileron);
     board->set_pwm_ms(r_ail_ch, aileron);
-    logger->trace("out {},{},{},{}", control_sequence.elevator, control_sequence.aileron, control_sequence.throttle, control_sequence.s_arm);
+    // logger->trace("out {},{},{},{}", control_sequence.elevator, control_sequence.aileron, control_sequence.throttle, control_sequence.s_arm);
     return {};
 }
 
