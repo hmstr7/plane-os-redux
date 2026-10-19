@@ -3,28 +3,52 @@
 #include <cstdint>
 #include <expected>
 #include <fstream>
-#include <initializer_list>
 #include <string_view>
 
-
 /*
-Loads config/hardware.json
+Loads hardware.json config file.
+* Does NOT create config file if missing
 */
 std::expected<nlohmann::json, Error> get_hardware_config() {
     std::ifstream f(CONFIG_PATH_HW);
-    if (!f) {
-        return std::unexpected(Error(ErrorType::FileError,"get_hardware_config"));
+    if (!f.is_open()) {
+        return std::unexpected(Error(ErrorType::FileError,std::format("Could not open config file at {}",CONFIG_PATH_HW)));
     }
 
     nlohmann::json config = nlohmann::json::parse(f,nullptr,false);
     if (config.is_discarded()) {
-        return std::unexpected(Error(ErrorType::ParseError,"get_hardware_config"));
+        return std::unexpected(Error(ErrorType::ParseError,"Error parsing config file"));
     }
-
+    f.close();
     return config;
 }
 
-// get_from_json moved to tpp
+/*
+Load auto.json
+*/
+std::expected<nlohmann::json, Error> get_auto_config() {
+    std::ifstream f(CONFIG_PATH_AUTO);
+    if (!f.is_open()) {
+        std::ofstream create(CONFIG_PATH_AUTO);
+        if (!create.is_open()) {
+            return std::unexpected(Error(FileError, std::format("Could not create auto.json at {}",CONFIG_PATH_AUTO)));
+        }
+        create.close();
+    }
+
+    nlohmann::json config = nlohmann::json::parse(f,nullptr,false);
+    if (config.is_discarded()) {
+        return std::unexpected(Error(ErrorType::ParseError,"Error parsing config file"));
+    }
+
+    f.open(CONFIG_PATH_AUTO);
+    if (!f.is_open()) {
+        std::unexpected(Error(ErrorType::FileError,std::format("Could not open config file at {}",CONFIG_PATH_AUTO)));
+    }
+    f.close();
+    return config;
+}
+
 
 // Type conversions //
 

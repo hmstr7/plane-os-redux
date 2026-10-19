@@ -1,6 +1,5 @@
 #include "io.hpp"
 #include <cstdint>
-#include "MPU9250.h"
 #include "PiPCA9685/PCA9685.h"
 #include "spdlog/logger.h"
 #include "spdlog/spdlog.h"
@@ -14,6 +13,7 @@
 #include "process.hpp"
 extern "C" {
     #include "ibus/ibus.h"
+    #include "../extern/sensor-imu/imu.h"
 }
 
 /*
@@ -72,7 +72,7 @@ void_cheap PWM::execute(Control& control_sequence) {
     double aileron = (double) control_sequence.aileron/1000;
     board->set_pwm_ms(l_ail_ch, aileron);
     board->set_pwm_ms(r_ail_ch, aileron);
-    logger->trace("out {},{},{},{}", control_sequence.elevator, control_sequence.aileron, control_sequence.throttle, control_sequence.s_arm);
+    // logger->trace("out {},{},{},{}", control_sequence.elevator, control_sequence.aileron, control_sequence.throttle, control_sequence.s_arm);
     return {};
 }
 
@@ -133,7 +133,7 @@ void_expensive IBUS::start(Control* c_input_in, std::mutex* c_input_mut_in) {
 Is called each time there is a new IBUS packet. 
 Important: pass `this` as a cookie in order to give the function access to the control queue
 
-Warning: performance critical!
+* Warning: performance critical!
 */
 void IBUS::handler(ibus_channel_t*  channels_raw, void* cookie) {
     static auto* self = static_cast<IBUS*>(cookie);
@@ -178,32 +178,74 @@ void IBUS::handler(ibus_channel_t*  channels_raw, void* cookie) {
 
 
 
-IMU::IMU(uint16_t addr): addr(addr) {
-    // logger = spdlog::get(LOGGER_IMU_NAME);
+IMU::IMU(
+    std::string_view device,
+    float bias_x,
+    float bias_y,
+    float bias_z
+): device(device), bias_x(bias_x), bias_y(bias_y), bias_z(bias_z) {
+    logger = spdlog::get(LOGGER_IMU_NAME);
+    if (!logger) {
+        spdlog::default_logger()->error("IMU Logger not found (IMU init)");
+    }
 
-    // if (!logger) {
-    //     logger = spdlog::default_logger(); // TODO proper fallback
-    // }
-
-    // board = std::make_unique<MPU9250>();
-    // board->setup(addr);
-    // if (!board->isConnectedMPU9250()) {
-    //     logger->error("IMU not connected (address: {})", addr);
-    // }    
-
-    // not implemented
-}
-IMU::~IMU() {
-    // possible deinit?
-}
-
-std::expected<RatesRead, ErrorType> IMU::read() {
-    // board->update();
-    // float x = board->getAccX();
-    // float y = board->getAccY();
-    // float z = board->getAccZ();
+    error* res = imu_init(&board, this->device.c_str(), IMU_ACC_RANGE_2G, IMU_GYRO_RANGE_250DPS);
     
-    // RatesRead rates = RatesRead();
-    // return rates;
-    return RatesRead(); // not implemented
+    if(res != NULL) {
+        if (!logger) {
+            spdlog::default_logger()->error("IMU init failed!");
+        } else {
+            logger->error("IMU init failed!");
+        }
+    }
+}
+
+IMU::~IMU() {
+    logger->trace("IMU io deinit");
+    imu_destroy(board);
+}
+
+std::expected<RatesRead, ErrorType> IMU::read(bool incbias) {
+    static imu_output io;
+    static error* res;
+    static float x,y,z;
+    res = imu_read(board, &io);
+    if(res != NULL) {
+        logger->error("IMU read error: {}", res);
+        return std::unexpected(ReadError);
+    }
+
+    // Remove bias
+    x = (!incbias) ? io.gyro.x - bias_x : io.gyro.x; 
+    y = (!incbias) ? io.gyro.y - bias_y : io.gyro.y;
+    z = (!incbias) ? io.gyro.z - bias_z : io.gyro.z;
+
+    return RatesRead(x,y,z);
+}
+
+/*
+Calibrate the IMU (automatically set gyro bias).
+* The drone should be completely stationary during this operation!
+
+*/
+void_expensive IMU::calibrate() {
+    float bx,by,bz;
+    for (int i = 0; i<=IMU_CAL_SAMPLESIZE; i++) {
+        auto res = read(true);
+        if (!res) {
+            return std::unexpected(Error(res.error(), "Error reading IMU data"));
+        }
+        if (!res.value().valid) {
+            // ! Change this behavior in the future
+            logger->warn("Calibration: gyro reading is out of range (+-{} deg/s)", IMU_BOUNDS);
+        }
+        
+        bx += res.value().x; 
+        by += res.value().y; 
+        bz += res.value().z; 
+    }
+    bias_x = bx / IMU_CAL_SAMPLESIZE;
+    bias_y = by / IMU_CAL_SAMPLESIZE;
+    bias_z = bz / IMU_CAL_SAMPLESIZE;
+    return {};
 }

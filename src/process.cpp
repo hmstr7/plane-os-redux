@@ -6,6 +6,7 @@
 #include <chrono>
 #include <cstdint>
 #include <expected>
+#include <initializer_list>
 #include <iomanip>
 #include <memory>
 #include "spdlog/common.h"
@@ -21,72 +22,35 @@ PWMProcess::PWMProcess(Shared& shared_mem) : Process(shared_mem) {
 }
 
 void_expensive PWMProcess::init() {
-    logger->trace("Init"); 
     if (this->state == NOT_READY) {
+        logger->trace("Init"); 
         // getting values from config
         const auto config = get_hardware_config();
         if (!config) {
             logger->error("Failed to load config: ", config.error());
             return std::unexpected(config.error());
         }
-        std::expected<std::string, Error> config_device = get_from_json<std::string>(config.value(), {"Output","PWM","device"}, "PWMProcess::init");
-        if (!config_device) {
-            logger->error("Failed to load device: ", config_device.error());
-            return std::unexpected(config_device.error());
-        }
-        std::expected<int, Error> config_ele_ch = get_from_json<int>(config.value(), {"Output","PWM","mapping","ele"}, "PWMProcess::init");
-        if (!config_ele_ch ) {
-            logger->error("Failed to load ele_ch: ", config_ele_ch.error());
-            return std::unexpected(config_ele_ch.error());
-        }
-        std::expected<int, Error> config_l_ail_ch = get_from_json<int>(config.value(), {"Output","PWM","mapping","l_ail"}, "PWMProcess::init");
-        if (!config_l_ail_ch) {
-            logger->error("Failed to load l_ail_ch: ", config_l_ail_ch.error());
-            return std::unexpected(config_l_ail_ch.error());
-        }
-        std::expected<int, Error> config_r_ail_ch = get_from_json<int>(config.value(), {"Output","PWM","mapping","r_ail"}, "PWMProcess::init");
-        if (!config_r_ail_ch) {
-            logger->error("Failed to load r_ail_ch: ", config_r_ail_ch.error());
-            return std::unexpected(config_r_ail_ch.error());
-        }
-        std::expected<int, Error> config_l_thr_ch = get_from_json<int>(config.value(), {"Output","PWM","mapping","l_thr"}, "PWMProcess::init");
-        if (!config_l_thr_ch) {
-            logger->error("Failed to load l_thr_ch: ", config_l_thr_ch.error());
-            return std::unexpected(config_l_thr_ch.error());
-        }
-        std::expected<int, Error> config_r_thr_ch = get_from_json<int>(config.value(), {"Output","PWM","mapping","r_thr"}, "PWMProcess::init");
-        if (!config_r_thr_ch) {
-            logger->error("Failed to load r_thr_ch: ", config_r_thr_ch.error());
-            return std::unexpected(config_r_thr_ch.error());
-        }
+
+        std::initializer_list<std::string_view> path = {"IO","PWM","device"};
+        JSONGET(config, path, config_device, std::string)
+        path = {"IO","PWM","ele"};
+        JSONGET(config, path, config_ele_ch, int)
+        path = {"IO","PWM","l_ail"};
+        JSONGET(config, path, config_l_ail_ch, int)
+        path = {"IO","PWM","r_ail"};
+        JSONGET(config, path, config_r_ail_ch, int)
+        path = {"IO","PWM","l_thr"};
+        JSONGET(config, path, config_l_thr_ch, int)
+        path = {"IO","PWM","r_thr"};
+        JSONGET(config, path, config_r_thr_ch, int)
         
         // conversion
         std::string device = config_device.value();
-        auto ele_ch = to_uint8(config_ele_ch.value());
-        if (!ele_ch) {
-            logger->error("Conversion error");
-            return std::unexpected(Error(ele_ch.error(), "PWMProcess::init"));
-        }
-        auto l_ail_ch = to_uint8(config_l_ail_ch.value());
-        if (!l_ail_ch) {
-            logger->error("Conversion error");
-            return std::unexpected(Error(l_ail_ch.error(), "PWMProcess::init"));
-        }
-        auto r_ail_ch = to_uint8(config_r_ail_ch.value());
-        if (!r_ail_ch) {
-            logger->error("Conversion error");
-            return std::unexpected(Error(r_ail_ch.error(), "PWMProcess::init"));
-        }
-        auto l_thr_ch = to_uint8(config_l_thr_ch.value());
-        if (!l_thr_ch) {
-            logger->error("Conversion error");
-            return std::unexpected(Error(l_thr_ch.error(), "PWMProcess::init"));
-        }
-        auto r_thr_ch = to_uint8(config_r_thr_ch.value());
-        if (!r_thr_ch) {
-            logger->error("Conversion error");
-            return std::unexpected(Error(r_thr_ch.error(), "PWMProcess::init"));
-        }
+        TO_UINT8(config_ele_ch, ele_ch)
+        TO_UINT8(config_l_ail_ch, l_ail_ch)
+        TO_UINT8(config_r_ail_ch, r_ail_ch)
+        TO_UINT8(config_l_thr_ch, l_thr_ch)
+        TO_UINT8(config_r_thr_ch, r_thr_ch)
 
         pwm_board = std::make_unique<PWM>(
             device,
@@ -119,7 +83,7 @@ void PWMProcess::operator()() {
         void_cheap exec_res = pwm_board->execute(current_control);
         if (!exec_res) {
             logger->error("Failed to execute control sequence: {}", ErrorTypeToStr.at(exec_res.error()));
-            state = ProcessState::FAILURE;
+            state = ProcessState::FAILED;
         }
     }
     logger->trace("PWM thread stopped.");
@@ -149,56 +113,25 @@ void_expensive IBUSProcess::init() {
             logger->error("Failed to load config: ", config.error());
             return std::unexpected(config.error());
         }
-        std::expected<std::string, Error> config_device = get_from_json<std::string>(config.value(), {"Output","IBUS","device"}, "PWMProcess::init");
-        if (!config_device) {
-            logger->error("Failed to load device: ", config_device.error());
-            return std::unexpected(config_device.error());
-        }
-        std::expected<int, Error> config_ele_ch = get_from_json<int>(config.value(), {"Output","IBUS","mapping","ele"}, "PWMProcess::init");
-        if (!config_ele_ch ) {
-            logger->error("Failed to load ele_ch: ", config_ele_ch.error());
-            return std::unexpected(config_ele_ch.error());
-        }
-        std::expected<int, Error> config_ail_ch = get_from_json<int>(config.value(), {"Output","IBUS","mapping","ail"}, "PWMProcess::init");
-        if (!config_ail_ch) {
-            logger->error("Failed to load ail_ch: ", config_ail_ch.error());
-            return std::unexpected(config_ail_ch.error());
-        }
-        std::expected<int, Error> config_thr_ch = get_from_json<int>(config.value(), {"Output","IBUS","mapping","thr"}, "PWMProcess::init");
-        if (!config_thr_ch) {
-            logger->error("Failed to load thr_ch: ", config_thr_ch.error());
-            return std::unexpected(config_thr_ch.error());
-        }
-        std::expected<int, Error> config_s_arm_ch = get_from_json<int>(config.value(), {"Output","IBUS","mapping","s_arm"}, "PWMProcess::init");
-        if (!config_s_arm_ch) {
-            logger->error("Failed to load s_arm_ch: ", config_s_arm_ch.error());
-            return std::unexpected(config_s_arm_ch.error());
-        }
         
+        std::initializer_list<std::string_view> path = {"IO","IBUS","device"};
+        JSONGET(config, path, config_device, std::string)
+        path = {"IO","IBUS","ele"};
+        JSONGET(config, path, config_ele_ch, int)
+        path = {"IO","IBUS","ail"};
+        JSONGET(config, path, config_ail_ch, int)
+        path = {"IO","IBUS","thr"};
+        JSONGET(config, path, config_thr_ch, int)
+        path = {"IO","IBUS","s_arm"};
+        JSONGET(config, path, config_s_arm_ch, int)
         
         // conversion
         std::string device = config_device.value();
-        auto ele_ch = to_uint8(config_ele_ch.value());
-        if (!ele_ch) {
-            logger->error("Conversion error");
-            return std::unexpected(Error(ele_ch.error(), "PWMProcess::init"));
-        }
-        auto ail_ch = to_uint8(config_ail_ch.value());
-        if (!ail_ch) {
-            logger->error("Conversion error");
-            return std::unexpected(Error(ail_ch.error(), "PWMProcess::init"));
-        }
-        auto thr_ch = to_uint8(config_thr_ch.value());
-        if (!thr_ch) {
-            logger->error("Conversion error");
-            return std::unexpected(Error(thr_ch.error(), "PWMProcess::init"));
-        }
-        auto s_arm_ch = to_uint8(config_s_arm_ch.value());
-        if (!s_arm_ch) {
-            logger->error("Conversion error");
-            return std::unexpected(Error(s_arm_ch.error(), "PWMProcess::init"));
-        }
-        
+        TO_UINT8(config_ele_ch, ele_ch)
+        TO_UINT8(config_ail_ch, ail_ch)
+        TO_UINT8(config_thr_ch, thr_ch)
+        TO_UINT8(config_s_arm_ch, s_arm_ch)
+
     
         if (shared_mem.f_logflightdata) {
             std::ostringstream lfilename;
@@ -247,7 +180,7 @@ void IBUSProcess::operator()() {
     void_expensive start_res = this->ibus->start(&(shared_mem.c_input), &(shared_mem.c_input_mut));
     if (!start_res) {
         logger->error("Could not start handling IBUS packets: ", start_res.error());
-        state = ProcessState::FAILURE;
+        state = ProcessState::FAILED;
         return;
     }
 }
@@ -285,7 +218,7 @@ void_expensive Middleman::init() {
                 break;
             default:
                 this->logger->error("The middleman is set to an unimplemented or invalid mode at init, aborting");
-                this->state = FAILURE;
+                this->state = FAILED;
                 return std::unexpected<Error>(Error(ErrorType::InitError,"Unknown middleman mode at init."));
         } 
         this->state = READY;
@@ -364,5 +297,68 @@ void Middleman::stop() {
     this->state = STOPPED;
 }
 
+IMUProcess::IMUProcess(Shared& shared_mem): Process(shared_mem) {
+    class_logger_name = LOGGER_MIDDLEMAN_NAME;
+    INIT_CLASS_LOGGER
+}
 
+void_expensive IMUProcess::init() {
+    if (this->state == NOT_READY) {
+        logger->trace("Init");
 
+        auto config = get_hardware_config();
+        if (!config) {
+            return std::unexpected(config.error());
+        }
+        
+        auto device = get_from_json<std::string>(config.value(), {"IO","IMU","device"});
+        if (!device) {
+            return std::unexpected(device.error());
+        }
+        
+        auto autoconf = get_auto_config();
+        if (!autoconf) {
+            return std::unexpected(autoconf.error());
+        }
+        
+        bool fail = false;
+
+        JSONGET_BIAS(autoconf, {"imu_gyro_bias_x"}, bias_x, float)
+        JSONGET_BIAS(autoconf, {"imu_gyro_bias_y"}, bias_y, float)
+        JSONGET_BIAS(autoconf, {"imu_gyro_bias_z"}, bias_z, float)
+
+        if (fail) {
+            this->imu = std::make_unique<IMU>(device.value());
+        } else {
+            this->imu = std::make_unique<IMU>(device.value(),bias_x.value(),bias_y.value(),bias_z.value());
+        }
+
+        this->state = READY;
+        this->logger->info("Initialized successfully");
+    } else {
+        this->logger->warn("IMU process is already initialized");
+        return {};
+    }
+    return {};
+}
+
+void IMUProcess::operator()() {
+    this->state = RUNNING;
+    while (this->state == RUNNING) {
+        
+        auto res = imu->read();
+        if (!res) {
+            logger->error("A ({}) has occured while trying to read IMU data", ErrorTypeToStr.at(res.error()));
+            continue;
+        }
+        if (!res.value().valid) {
+            logger->warn("Received gyro readings are invalid. {}", POLICY_DROPINVALIDRATES ? "Dropping." : "");
+            if (POLICY_DROPINVALIDRATES) {
+                continue;
+            }
+        }
+        this->shared_mem.c_imu_mut.lock();
+        this->shared_mem.c_imu = res.value();
+        this->shared_mem.c_imu_mut.unlock();
+    }
+}

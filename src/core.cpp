@@ -128,7 +128,7 @@ void Core::process_manager() {
     // Watchdog loop
     while (core_state.fstate == FlightState::OPERATIONAL) {
         for (auto& proc : procs) {
-            if (proc->state == ProcessState::FAILURE) {
+            if (proc->state == ProcessState::FAILED) {
                 // TODO handle failed process here
                 logger->error("Process {} failed.", typeid(*proc).name());  // TEMPORARY
                 break;

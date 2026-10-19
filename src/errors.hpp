@@ -18,7 +18,8 @@ enum ErrorType {
     JsonTypeError, // JSON object is not of desired type
     TypeError, // Generic error concerning types
     InitError, // Generic error concerning initialization
-    OutOfRangeError // self explanatory
+    OutOfRangeError, // self explanatory
+    ReadError // For generic errors concerning reading data
 };
 
 /*
@@ -32,19 +33,20 @@ inline const std::map<ErrorType, std::string> ErrorTypeToStr = {
     {JsonTypeError,"JSON object type mismatch"},
     {TypeError,"Type Error"},
     {InitError, "Init Error"},
-    {OutOfRangeError, "Out Of Range Error"}
+    {OutOfRangeError, "Out Of Range Error"},
+    {ReadError, "Read Error"}
 };
 
 /*
 Error object that consists of an ErrorType enum and the location (string literal) where the error has occured.
-Warning: expensive! Not to use in performance-critical code.
+* Warning: expensive! Not to use in performance-critical code.
 */
 struct Error {
     ErrorType errtype;
-    std::string where;
-    Error(ErrorType errtype, std::string_view where): errtype(errtype), where(where) {};
+    std::string what;
+    Error(ErrorType errtype, std::string_view what = "Unknown error"): errtype(errtype), what(what) {};
     inline std::string to_string() const {
-        return ErrorTypeToStr.at(errtype) + " @ " + where;
+        return ErrorTypeToStr.at(errtype) + ": " + what;
     }
 };
 

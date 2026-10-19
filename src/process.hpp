@@ -20,18 +20,39 @@
 #define Q_IN_SIZE 100
 #define Q_OUT_SIZE 100
 
-#define INIT_CLASS_LOGGER logger = spdlog::get(class_logger_name); \
-    if (!logger) { \
-        logger = std::make_shared<spdlog::logger>(class_logger_name, std::begin(shared_mem.sinks), std::end(shared_mem.sinks)); \
-        spdlog::register_logger(logger); \
-        logger->set_level(LOGGER_PROCESS_LEVEL); \
-    }
+#define JSONGET(config,path,var,T) \
+auto var = get_from_json<T>(config.value(), path); \
+if (!var) { \
+    return std::unexpected(var.error()); \
+}
+
+#define JSONGET_BIAS(config,path,var,T) \
+auto var = get_from_json<T>(config.value(), path); \
+if (!var) { \
+    logger->error("Failed to get bias from config - {}", var.error()); \
+    fail = true; \
+}
+
+#define TO_UINT8(configv,var) \
+auto var = to_uint8(configv.value()); \
+if (!var) { \
+    return std::unexpected(Error(var.error())); \
+}
+
+#define INIT_CLASS_LOGGER \
+logger = spdlog::get(class_logger_name); \
+if (!logger) { \
+    logger = std::make_shared<spdlog::logger>(class_logger_name, std::begin(shared_mem.sinks), std::end(shared_mem.sinks)); \
+    spdlog::register_logger(logger); \
+    logger->set_level(LOGGER_PROCESS_LEVEL); \
+}
+
 
 enum ProcessState {
     NOT_READY,
     READY,
     RUNNING,
-    FAILURE,
+    FAILED,
     STOPPED
 };
 
@@ -43,18 +64,19 @@ enum MiddlemanMode {
 };
 
 struct Shared {
-    Control c_input = CONTROL_NEUTRAL; std::mutex c_input_mut;
-    Control c_output = CONTROL_NEUTRAL; std::mutex c_output_mut;
+    Control c_input = CONTROL_NEUTRAL; std::mutex c_input_mut; // Register containing last received control sequence
+    Control c_output = CONTROL_NEUTRAL; std::mutex c_output_mut; // Register containing control sequence that needs to be executed
+    RatesRead c_imu = RatesRead(0,0,0); std::mutex c_imu_mut; // Register containing last IMU reading (gyro)
 
-    std::chrono::time_point<std::chrono::steady_clock> flightlog_starttime;
+    std::chrono::time_point<std::chrono::steady_clock> flightlog_starttime; // Point in time that is considered the start of the flight log
 
     // Flags
-    bool f_logflightdata = false;
+    bool f_logflightdata = false; // If flight data needs to be logged into a file (currently includes: received inputs, imu readings)
 
-    MiddlemanMode middleman_mode = STANDBY;
-    bool mmode_user_allowed = false;
+    MiddlemanMode middleman_mode = STANDBY; // Current mode of operation of the Middleman process 
+    bool mmode_user_allowed = false; // Current middleman state is allowed to be influenced by the user
 
-    std::vector<spdlog::sink_ptr> sinks;
+    std::vector<spdlog::sink_ptr> sinks; // spdlog sinks (ex. console output or log file)
 };
 
 class Process {
@@ -98,13 +120,19 @@ class IBUSProcess: public Process {
 };
 
 class IMUProcess: public Process {
-    
+    private:
+        std::unique_ptr<IMU> imu;
+    public:
+        IMUProcess(Shared& shared_mem);
+        void_expensive init() override;
+        void operator()() override;
+        void stop() override;
 };
 
 class Middleman: public Process {
     private:
         bool running = false;
-        Control ctrl_buff = Control(0,0,0,0);
+        Control ctrl_buff = CONTROL_NEUTRAL;
         MiddlemanMode lastm = NOT_SET;
     public:
         Middleman(Shared& shared_mem);

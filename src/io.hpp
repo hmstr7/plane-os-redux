@@ -9,13 +9,14 @@
 #include "PiPCA9685/PCA9685.h"
 #include "errors.hpp"
 #include "common.hpp"
-#include "MPU9250.h"
 extern "C" {
     #include "ibus/ibus.h"
+    #include "../extern/sensor-imu/imu.h"
 }
 
 
 #define PWM_FREQ 50.0
+#define IMU_CAL_SAMPLESIZE 500
 
 class PWM {
     private:
@@ -78,15 +79,21 @@ class IMU {
     private:
         std::shared_ptr<spdlog::logger> logger;
 
-        // const std::string device;
-        const uint16_t addr; 
+        const std::string device;
 
-        std::unique_ptr<MPU9250> board;
+        float bias_x;
+        float bias_y;
+        float bias_z;
+
+        imut* board;
     public:
         IMU(
-            // std::string device, 
-            uint16_t addr
+            std::string_view device,
+            float bias_x = 0.,
+            float bias_y = 0.,
+            float bias_z = 0.
         );
         ~IMU();
-        std::expected<RatesRead, ErrorType> read();
+        std::expected<RatesRead, ErrorType> read(bool incbias = false);
+        void_expensive calibrate();
 };

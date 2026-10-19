@@ -7,17 +7,20 @@ set(JSON_BuildTests OFF CACHE INTERNAL "")
 project(plane-os-redux LANGUAGES C CXX)
 
 # Global packages
+find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(Boost REQUIRED) # Global because too general and too big
 
+file(GLOB SENSORIMU_SOURCES "extern/sensor-imu/*.c")
+add_library(sensor-imu STATIC
+    ${SENSORIMU_SOURCES}
+)
 
 # Git submodules
 #add_subdirectory(extern/pybind11)
-#add_subdirectory(extern/wiringOP)
 add_subdirectory(extern/ibus)
 add_subdirectory(extern/PiPCA9685)
 add_subdirectory(extern/json)
 add_subdirectory(extern/spdlog)
-#add_subdirectory(extern/MPU9250-RPi)
 
 add_executable(main
     # Main program
@@ -39,13 +42,9 @@ add_executable(main
     src/process.cpp
 )
 
-#pybind11_add_module(cstuff cfuncs/hardware.cpp)
-
 target_link_libraries(main PRIVATE ibus)
 target_link_libraries(main PRIVATE PiPCA9685::PiPCA9685)
 target_link_libraries(main PRIVATE nlohmann_json::nlohmann_json)
 target_link_libraries(main PRIVATE spdlog::spdlog)
 target_link_libraries(main PRIVATE Boost::headers)
-target_include_directories(main PRIVATE
-    extern/MPU9250-RPi/include
-)
+target_link_libraries(main PRIVATE sensor-imu)

@@ -1,5 +1,5 @@
 {
-    "Output":{
+    "IO":{
         "IBUS":{
             "device":"/dev/ttyS5",
             "mapping":{
@@ -18,6 +18,9 @@
                 "l_thr":4,
                 "r_thr":5
             }
+        },
+        "IMU":{
+            "device":"/dev/i2c-3"
         }
     }
 }
