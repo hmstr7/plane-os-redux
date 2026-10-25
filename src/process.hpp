@@ -21,14 +21,14 @@
 #define Q_IN_SIZE 100
 #define Q_OUT_SIZE 100
 
-#define JSONGET(config,path,var,T) \
-auto var = get_from_json<T>(config.value(), path); \
+#define JSONGET(config,var,T, ...) \
+auto var = get_from_json<T>(config.value(), {__VA_ARGS__}); \
 if (!var) { \
     return std::unexpected(var.error()); \
 }
 
-#define JSONGET_BIAS(config,path,var,T) \
-auto var = get_from_json<T>(config.value(), path); \
+#define JSONGET_BIAS(config,var,T,...) \
+auto var = get_from_json<T>(config.value(), {__VA_ARGS__}); \
 if (!var) { \
     logger->error("Failed to get bias from config - {}", var.error()); \
     fail = true; \

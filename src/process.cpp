@@ -33,18 +33,13 @@ void_expensive PWMProcess::init() {
             return std::unexpected(config.error());
         }
 
-        std::initializer_list<std::string_view> path = {"IO","PWM","device"};
-        JSONGET(config, path, config_device, std::string)
-        path = {"IO","PWM","ele"};
-        JSONGET(config, path, config_ele_ch, int)
-        path = {"IO","PWM","l_ail"};
-        JSONGET(config, path, config_l_ail_ch, int)
-        path = {"IO","PWM","r_ail"};
-        JSONGET(config, path, config_r_ail_ch, int)
-        path = {"IO","PWM","l_thr"};
-        JSONGET(config, path, config_l_thr_ch, int)
-        path = {"IO","PWM","r_thr"};
-        JSONGET(config, path, config_r_thr_ch, int)
+
+        JSONGET(config, config_device, std::string, "IO","PWM","device")
+        JSONGET(config, config_ele_ch, int,"IO","PWM","ele")
+        JSONGET(config, config_l_ail_ch, int,"IO","PWM","l_ail")
+        JSONGET(config, config_r_ail_ch, int,"IO","PWM","r_ail")
+        JSONGET(config, config_l_thr_ch, int,"IO","PWM","l_thr")
+        JSONGET(config, config_r_thr_ch, int,"IO","PWM","r_thr")
         
         // conversion
         std::string device = config_device.value();
@@ -116,16 +111,12 @@ void_expensive IBUSProcess::init() {
             return std::unexpected(config.error());
         }
         
-        std::initializer_list<std::string_view> path = {"IO","IBUS","device"};
-        JSONGET(config, path, config_device, std::string)
-        path = {"IO","IBUS","ele"};
-        JSONGET(config, path, config_ele_ch, int)
-        path = {"IO","IBUS","ail"};
-        JSONGET(config, path, config_ail_ch, int)
-        path = {"IO","IBUS","thr"};
-        JSONGET(config, path, config_thr_ch, int)
-        path = {"IO","IBUS","s_arm"};
-        JSONGET(config, path, config_s_arm_ch, int)
+        std::initializer_list<std::string_view> path = {};
+        JSONGET(config, config_device, std::string,"IO","IBUS","device")
+        JSONGET(config, config_ele_ch, int,"IO","IBUS","ele")
+        JSONGET(config, config_ail_ch, int,"IO","IBUS","ail")
+        JSONGET(config, config_thr_ch, int,"IO","IBUS","thr")
+        JSONGET(config, config_s_arm_ch, int,"IO","IBUS","s_arm")
         
         // conversion
         std::string device = config_device.value();
@@ -193,9 +184,9 @@ void IBUSProcess::stop() {
         return;
     }
     logger->trace("Stopping process");
+    this->state = ProcessState::STOPPED;
     this->ibus.reset();
     this->ibus = nullptr;
-    this->state = ProcessState::STOPPED;
 }
 
 
@@ -325,9 +316,9 @@ void_expensive IMUProcess::init() {
         
         bool fail = false;
 
-        JSONGET_BIAS(autoconf, {"imu_gyro_bias_x"}, bias_x, float)
-        JSONGET_BIAS(autoconf, {"imu_gyro_bias_y"}, bias_y, float)
-        JSONGET_BIAS(autoconf, {"imu_gyro_bias_z"}, bias_z, float)
+        JSONGET_BIAS(autoconf, bias_x, float, "imu_gyro_bias_x")
+        JSONGET_BIAS(autoconf, bias_y, float, "imu_gyro_bias_y")
+        JSONGET_BIAS(autoconf, bias_z, float, "imu_gyro_bias_z")
 
         if (shared_mem.f_logflightdata) {
             std::ostringstream lfilename;
@@ -428,4 +419,15 @@ void IMUProcess::operator()() {
         this->shared_mem.c_imu = res.value();
         this->shared_mem.c_imu_mut.unlock();
     }
+}
+
+void IMUProcess::stop() {
+    if (state == STOPPED) {
+        logger->warn("Process already stopped");
+        return;
+    }
+    logger->trace("Stopping process");
+    this->state = STOPPED;
+    this->imu.reset();
+    this->imu = nullptr;
 }

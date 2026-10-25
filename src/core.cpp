@@ -26,11 +26,13 @@ Core::Core() {
 
 
 
-void Core::init(Subprogram load_prog, bool logflightdata = false) {
+void Core::init(Subprogram load_prog, bool logflightdata = false, bool prompt_calibrate = true, bool should_calibrate = true) {
     // TODO init
     core_state.fstate = FlightState::INIT;
     core_state.prog = load_prog;
     pf_logflightdata = logflightdata;
+    pf_prompt_calib = prompt_calibrate;
+    pf_should_calib = should_calibrate;
 }
 
 void Core::process_manager() {

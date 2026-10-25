@@ -14,13 +14,16 @@ class Core {
         Shared shared_mem;
         std::vector<std::shared_ptr<Process>> procs;
         std::shared_ptr<spdlog::logger> logger;
+
         bool pf_logflightdata;
+        bool pf_prompt_calib;
+        bool pf_should_calib;
     public:
         State core_state;
         
         Core();
 
-        void init(Subprogram load_prog, bool logflightdata);
+        void init(Subprogram load_prog, bool logflightdata, bool prompt_calibrate, bool should_calibrate);
         void process_manager();
         void deinit();
 

@@ -20,6 +20,8 @@ int main(int ac, char * av[]) {
     desc.add_options()
         ("help", "produce help message")
         ("flightlog", "log inputs into a flight log file")
+        ("no-calib", "skips IMU calibration")
+        ("calib","skips IMU calibration confirmation prompt and calibrates the drone")
     ;
 
     po::variables_map vm;
@@ -43,8 +45,21 @@ int main(int ac, char * av[]) {
         spdlog::default_logger()->critical("Failed to install signal handlers\n");
         return EXIT_FAILURE;
     }
+    
+    bool pc, sc;
 
-    flight_core.init(Subprogram::SIMPLE, vm.count("flightlog"));
+    if (vm.count("no-calib")) {
+        pc = false;
+        sc = false;
+    } else if (vm.count("calib")) {
+        pc = false;
+        sc = true;
+    } else {
+        pc = true;
+        sc = true;
+    }
+
+    flight_core.init(Subprogram::SIMPLE, vm.count("flightlog"),pc,sc);
     flight_core.process_manager();
     
     return 0;
