@@ -54,6 +54,7 @@ void Core::process_manager() {
             procs.push_back(std::make_shared<PWMProcess>(shared_mem));
             procs.push_back(std::make_shared<Middleman>(shared_mem));
 
+
             // Initialize processes
             for (auto& proc : procs) {
                 auto init_res = proc->init();
@@ -88,6 +89,12 @@ void Core::process_manager() {
             procs.push_back(std::make_shared<IBUSProcess>(shared_mem));
             procs.push_back(std::make_shared<PWMProcess>(shared_mem));
             procs.push_back(std::make_shared<Middleman>(shared_mem));
+            procs.push_back(std::make_shared<IMUProcess>(shared_mem));
+
+            // Flags
+            shared_mem.f_logflightdata = pf_logflightdata;
+            shared_mem.f_prompt_calibrate = pf_prompt_calib;
+            shared_mem.f_should_calibrate = pf_should_calib;
 
             // Initialize processes
             for (auto& proc : procs) {
@@ -99,8 +106,6 @@ void Core::process_manager() {
                 }
             }
 
-            // Flags
-            shared_mem.f_logflightdata = pf_logflightdata;
             
             // Config
             shared_mem.middleman_mode = PASSTHROUGH;
