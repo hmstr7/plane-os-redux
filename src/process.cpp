@@ -127,6 +127,7 @@ void_expensive IBUSProcess::init() {
 
     
         if (shared_mem.f_logflightdata) {
+            logger->trace("Creating input flightlog file...");
             std::ostringstream lfilename;
             lfilename << LOGDIR;
             lfilename << FLIGHTLOGPREFIX << "-";
@@ -138,10 +139,15 @@ void_expensive IBUSProcess::init() {
             
             lfilename << "-input" << FLIGHTLOGFILEXT;
 
-            this->input_log = spdlog::basic_logger_mt<spdlog::async_factory>("input_logger", lfilename.str()); // ! no error handling 
-            this->input_log->set_level(spdlog::level::trace);
-            this->input_log->set_pattern("%v"); // so it is a valid csv
-            this->input_log->trace(FLIGHTLOGHEADER_INPUT);
+            this->input_log = spdlog::basic_logger_mt<spdlog::async_factory>("input_logger", lfilename.str()); 
+            if (!this->input_log) {
+                logger->error("Could not create log file {}", lfilename.str());
+            } else {
+                this->input_log->set_level(spdlog::level::trace);
+                this->input_log->set_pattern("%v"); // so it is a valid csv
+                this->input_log->trace(FLIGHTLOGHEADER_INPUT);
+            }
+            logger->trace("Done creating input flightlog file.");
         }
 
         ibus = std::make_unique<IBUS>(

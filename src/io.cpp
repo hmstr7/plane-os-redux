@@ -82,7 +82,7 @@ IBUS::IBUS(
     uint8_t ail_ch, 
     uint8_t thr_ch,
     uint8_t s_arm_ch,
-    std::shared_ptr<spdlog::logger> input_log, std::chrono::time_point<std::chrono::steady_clock>* flog_starttime
+    std::shared_ptr<spdlog::logger> input_log_in, std::chrono::time_point<std::chrono::steady_clock>* flog_starttime
 ): device(device), ele_ch(ele_ch), ail_ch(ail_ch), thr_ch(thr_ch), s_arm_ch(s_arm_ch) {
     logger = spdlog::get(LOGGER_IBUS_NAME);
     if (!logger) {
@@ -92,8 +92,8 @@ IBUS::IBUS(
     ibus_config.device = this->device.c_str();
     context = ibus_init(&ibus_config);
 
-    if (input_log) {
-        this->input_log = input_log;
+    if (input_log_in) {
+        this->input_log = input_log_in;
     }
     this->log_starttime = flog_starttime;
 
