@@ -19,7 +19,7 @@ enum ErrorType {
     TypeError, // Generic error concerning types
     InitError, // Generic error concerning initialization
     OutOfRangeError, // self explanatory
-    ReadError // For generic errors concerning reading data
+    ReadError, // For generic errors concerning reading data
 };
 
 /*

@@ -10,6 +10,7 @@
 #include "spdlog/common.h"
 #include <vector>
 #include "spdlog/async.h"
+#include "spdlog/logger.h"
 #include "spdlog/sinks/basic_file_sink.h"
 
 #define LOGGER_PWM_NAME "PWM"
@@ -47,6 +48,12 @@ if (!logger) { \
     logger->set_level(LOGGER_PROCESS_LEVEL); \
 }
 
+#define SAVEBIAS(var,k,ind) \
+auto var = write_to_json<float>(config.value(), CONFIG_PATH_AUTO, {k}, imu->getBias()[ind]); \
+if (!res) { \
+    fail = true; \
+}
+
 
 enum ProcessState {
     NOT_READY,
@@ -72,6 +79,8 @@ struct Shared {
 
     // Flags
     bool f_logflightdata = false; // If flight data needs to be logged into a file (currently includes: received inputs, imu readings)
+    bool f_prompt_calibrate = true; // By default, the user is prompted to calibrate the IMU. This behaviour can be overriden by supplying --no-calib option.
+    bool f_should_calibrate = true; // If IMU calibration needs to be performed.
 
     MiddlemanMode middleman_mode = STANDBY; // Current mode of operation of the Middleman process 
     bool mmode_user_allowed = false; // Current middleman state is allowed to be influenced by the user
@@ -122,6 +131,7 @@ class IBUSProcess: public Process {
 class IMUProcess: public Process {
     private:
         std::unique_ptr<IMU> imu;
+        std::shared_ptr<spdlog::logger> imu_log;
     public:
         IMUProcess(Shared& shared_mem);
         void_expensive init() override;

@@ -180,6 +180,7 @@ void IBUS::handler(ibus_channel_t*  channels_raw, void* cookie) {
 
 IMU::IMU(
     std::string_view device,
+    std::shared_ptr<spdlog::logger> imu_log, std::chrono::time_point<std::chrono::steady_clock>* flog_starttime,
     float bias_x,
     float bias_y,
     float bias_z
@@ -198,6 +199,10 @@ IMU::IMU(
             logger->error("IMU init failed!");
         }
     }
+    if (imu_log) {
+        this->imu_log = imu_log;
+    }
+    this->log_starttime = flog_starttime;
 }
 
 IMU::~IMU() {
@@ -209,6 +214,7 @@ std::expected<RatesRead, ErrorType> IMU::read(bool incbias) {
     static imu_output io;
     static error* res;
     static float x,y,z;
+    static double t;
     res = imu_read(board, &io);
     if(res != NULL) {
         logger->error("IMU read error: {}", res);
@@ -219,6 +225,15 @@ std::expected<RatesRead, ErrorType> IMU::read(bool incbias) {
     x = (!incbias) ? io.gyro.x - bias_x : io.gyro.x; 
     y = (!incbias) ? io.gyro.y - bias_y : io.gyro.y;
     z = (!incbias) ? io.gyro.z - bias_z : io.gyro.z;
+
+    if (this->imu_log && this->log_starttime) {
+        t = std::chrono::duration<double>(std::chrono::steady_clock::now() - *(this->log_starttime)).count();
+
+        this->imu_log->trace("{},{},{},{}",
+            t,
+            x,y,z
+        );
+    }
 
     return RatesRead(x,y,z);
 }

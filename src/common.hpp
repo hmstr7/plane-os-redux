@@ -4,7 +4,8 @@
 #define LOGDIR "../logs/"
 #define FLIGHTLOGPREFIX "flightlog"
 #define FLIGHTLOGFILEXT ".csv"
-#define FLIGHTLOGHEADER "t,ele,ail,thr,s_arm"
+#define FLIGHTLOGHEADER_INPUT "t,ele,ail,thr,s_arm"
+#define FLIGHTLOGHEADER_IMU "t,x,y,z"
 
 #define ALLOWED_DEVIATION 20
 #define CONTROL_SURFACE_NEUTRAL 1500
@@ -16,6 +17,7 @@
 #define IMU_BOUNDS 250
 
 #define POLICY_DROPINVALIDRATES false
+#define POLICY_CALIBFAILEDSTOPSPROG false
 
 /*
 State of the vehicle

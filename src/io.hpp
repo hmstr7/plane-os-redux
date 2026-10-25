@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <expected>
 #include <memory>
 #include <queue>
@@ -78,6 +79,8 @@ class IBUS {
 class IMU {
     private:
         std::shared_ptr<spdlog::logger> logger;
+        std::shared_ptr<spdlog::logger> imu_log;
+        std::chrono::time_point<std::chrono::steady_clock>* log_starttime;
 
         const std::string device;
 
@@ -89,6 +92,7 @@ class IMU {
     public:
         IMU(
             std::string_view device,
+            std::shared_ptr<spdlog::logger> imu_log, std::chrono::time_point<std::chrono::steady_clock>* flog_starttime,
             float bias_x = 0.,
             float bias_y = 0.,
             float bias_z = 0.
@@ -96,4 +100,8 @@ class IMU {
         ~IMU();
         std::expected<RatesRead, ErrorType> read(bool incbias = false);
         void_expensive calibrate();
+        inline float getBiasX() {return this->bias_x;}
+        inline float getBiasY() {return this->bias_y;}
+        inline float getBiasZ() {return this->bias_z;}
+        inline std::array<float, 3> getBias() {return {bias_x, bias_y, bias_z};}
 };

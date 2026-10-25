@@ -9,6 +9,7 @@ project(plane-os-redux LANGUAGES C CXX)
 # Global packages
 find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(Boost REQUIRED) # Global because too general and too big
+find_package(ftxui REQUIRED)
 
 file(GLOB SENSORIMU_SOURCES "extern/sensor-imu/*.c")
 add_library(sensor-imu STATIC
@@ -48,3 +49,4 @@ target_link_libraries(main PRIVATE nlohmann_json::nlohmann_json)
 target_link_libraries(main PRIVATE spdlog::spdlog)
 target_link_libraries(main PRIVATE Boost::headers)
 target_link_libraries(main PRIVATE sensor-imu)
+target_link_libraries(main PRIVATE ftxui::component)

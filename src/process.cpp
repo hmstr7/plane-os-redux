@@ -2,6 +2,7 @@
 #include "common.hpp"
 #include "errors.hpp"
 #include "helper.hpp"
+#include "helper.tpp"
 #include "io.hpp"
 #include <chrono>
 #include <cstdint>
@@ -14,6 +15,7 @@
 #include "spdlog/spdlog.h"
 #include <sstream>
 #include <string>
+#include <iostream>
 
 
 PWMProcess::PWMProcess(Shared& shared_mem) : Process(shared_mem) {
@@ -148,7 +150,7 @@ void_expensive IBUSProcess::init() {
             this->input_log = spdlog::basic_logger_mt<spdlog::async_factory>("input_logger", lfilename.str()); // ! no error handling 
             this->input_log->set_level(spdlog::level::trace);
             this->input_log->set_pattern("%v"); // so it is a valid csv
-            this->input_log->trace(FLIGHTLOGHEADER);
+            this->input_log->trace(FLIGHTLOGHEADER_INPUT);
         }
 
         ibus = std::make_unique<IBUS>(
@@ -327,10 +329,75 @@ void_expensive IMUProcess::init() {
         JSONGET_BIAS(autoconf, {"imu_gyro_bias_y"}, bias_y, float)
         JSONGET_BIAS(autoconf, {"imu_gyro_bias_z"}, bias_z, float)
 
+        if (shared_mem.f_logflightdata) {
+            std::ostringstream lfilename;
+            lfilename << LOGDIR;
+            lfilename << FLIGHTLOGPREFIX << "-";
+            // add timestamp
+            auto now = std::chrono::system_clock::now();
+            auto time = std::chrono::system_clock::to_time_t(now);
+            std::tm localTime = *std::localtime(&time);
+            lfilename << std::put_time(&(localTime), "%Y-%m-%d_%H-%M-%S");
+            
+            lfilename << "-imu" << FLIGHTLOGFILEXT;
+
+            this->imu_log = spdlog::basic_logger_mt<spdlog::async_factory>("imu_logger", lfilename.str()); // ! no error handling 
+            this->imu_log->set_level(spdlog::level::trace);
+            this->imu_log->set_pattern("%v"); // so it is a valid csv
+            this->imu_log->trace(FLIGHTLOGHEADER_IMU);
+        }
+
         if (fail) {
-            this->imu = std::make_unique<IMU>(device.value());
+            this->imu = std::make_unique<IMU>(device.value(),imu_log, &(shared_mem.flightlog_starttime));
         } else {
-            this->imu = std::make_unique<IMU>(device.value(),bias_x.value(),bias_y.value(),bias_z.value());
+            this->imu = std::make_unique<IMU>(device.value(),imu_log, &(shared_mem.flightlog_starttime),bias_x.value(),bias_y.value(),bias_z.value());
+        }
+
+        // TODO: UI
+        // Calibration prompt 
+        if (shared_mem.f_prompt_calibrate) {
+            bool ans_valid = false;
+            while (!ans_valid) {
+                std::string ans;
+                std::cout << "\n(calib) Calibrate? [y/n] ";
+                std::cin >> ans;
+                if (ans == "y" || ans == "Y" || ans == "Yes" || ans == "yes") {
+                    ans_valid = true;
+                    shared_mem.f_should_calibrate = true;
+                } else if (ans == "n" || ans == "N" || ans == "No" || ans == "no") {
+                    ans_valid = true;
+                    shared_mem.f_should_calibrate = false;
+                } else {
+                    std::cout << "\n Please enter either y or n. \n";
+                }
+            }
+        }
+        if (shared_mem.f_should_calibrate) {
+            logger->trace("Begin calibrate");
+            std::cout << "\n(calib) Position the drone so that it is completely stationary during calibration. \nWhen ready, press [Enter] ";
+            std::cin;
+            std::cout << "\n(calib) Calibration in progress...";
+            auto res = imu->calibrate();
+            if (!res) {
+                logger->error("Calibration failed: {}",res.error().to_string());
+                std::cout << "\n(calib) Calibration failed.\n";
+
+                if (POLICY_CALIBFAILEDSTOPSPROG) {
+                    return std::unexpected(Error(InitError, "Calibration process failed"));
+                }
+            } else {
+                logger->info("Calibrated successfully");
+                std::cout << "\n(calib) Calibrated successfully.\n";
+
+                bool fail = false;
+                SAVEBIAS(biasxres,"imu_gyro_bias_x", 0);
+                SAVEBIAS(biasyres,"imu_gyro_bias_y", 1);
+                SAVEBIAS(biaszres,"imu_gyro_bias_z", 2);
+                if (fail) {
+                    logger->error("Failed to save calibration data: {}", biasxres.error().to_string());
+                }
+
+            }
         }
 
         this->state = READY;
