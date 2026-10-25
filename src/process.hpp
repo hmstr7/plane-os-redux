@@ -27,7 +27,7 @@ if (!var) { \
     return std::unexpected(var.error()); \
 }
 
-#define JSONGET_BIAS(config,var,T,...) \
+#define JSONGET_BIAS(config,var,T, ...) \
 auto var = get_from_json<T>(config.value(), {__VA_ARGS__}); \
 if (!var) { \
     logger->error("Failed to get bias from config - {}", var.error()); \
