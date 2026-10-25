@@ -94,7 +94,7 @@ void Core::process_manager() {
                 auto init_res = proc->init();
                 if (!init_res) {
                     // TODO advanced error handling
-                    logger->error("Init failed for {}", typeid(*proc).name());
+                    logger->error("Init failed for {}: {}", typeid(*proc).name(), init_res.error().to_string());
                     return;
                 }
             }
