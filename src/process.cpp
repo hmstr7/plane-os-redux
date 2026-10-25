@@ -35,11 +35,11 @@ void_expensive PWMProcess::init() {
 
 
         JSONGET(config, config_device, std::string, "IO","PWM","device")
-        JSONGET(config, config_ele_ch, int,"IO","PWM","ele")
-        JSONGET(config, config_l_ail_ch, int,"IO","PWM","l_ail")
-        JSONGET(config, config_r_ail_ch, int,"IO","PWM","r_ail")
-        JSONGET(config, config_l_thr_ch, int,"IO","PWM","l_thr")
-        JSONGET(config, config_r_thr_ch, int,"IO","PWM","r_thr")
+        JSONGET(config, config_ele_ch, int,"IO","PWM","mapping","ele")
+        JSONGET(config, config_l_ail_ch, int,"IO","PWM","mapping","l_ail")
+        JSONGET(config, config_r_ail_ch, int,"IO","PWM","mapping","r_ail")
+        JSONGET(config, config_l_thr_ch, int,"IO","PWM","mapping","l_thr")
+        JSONGET(config, config_r_thr_ch, int,"IO","PWM","mapping","r_thr")
         
         // conversion
         std::string device = config_device.value();
@@ -113,10 +113,10 @@ void_expensive IBUSProcess::init() {
         
         std::initializer_list<std::string_view> path = {};
         JSONGET(config, config_device, std::string,"IO","IBUS","device")
-        JSONGET(config, config_ele_ch, int,"IO","IBUS","ele")
-        JSONGET(config, config_ail_ch, int,"IO","IBUS","ail")
-        JSONGET(config, config_thr_ch, int,"IO","IBUS","thr")
-        JSONGET(config, config_s_arm_ch, int,"IO","IBUS","s_arm")
+        JSONGET(config, config_ele_ch, int,"IO","IBUS","mapping","ele")
+        JSONGET(config, config_ail_ch, int,"IO","IBUS","mapping","ail")
+        JSONGET(config, config_thr_ch, int,"IO","IBUS","mapping","thr")
+        JSONGET(config, config_s_arm_ch, int,"IO","IBUS","mapping","s_arm")
         
         // conversion
         std::string device = config_device.value();
