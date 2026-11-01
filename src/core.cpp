@@ -2,8 +2,10 @@
 #include "common.hpp"
 #include "errors.hpp"
 #include "process.hpp"
+#include <chrono>
 #include <cstdlib>
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <print>
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -17,14 +19,20 @@
 Core::Core() {
     logger = spdlog::default_logger();
     logger->set_level(LOGGER_CORE_LEVEL);
+    spdlog::set_error_handler([](const std::string& msg) {
+        std::cerr << "spdlog error: " << msg << std::endl;
+    });
 }
 
 
 
-void Core::init(Subprogram load_prog) {
+void Core::init(Subprogram load_prog, bool logflightdata = false, bool prompt_calibrate = true, bool should_calibrate = true) {
     // TODO init
     core_state.fstate = FlightState::INIT;
     core_state.prog = load_prog;
+    pf_logflightdata = logflightdata;
+    pf_prompt_calib = prompt_calibrate;
+    pf_should_calib = should_calibrate;
 }
 
 void Core::process_manager() {
@@ -45,6 +53,7 @@ void Core::process_manager() {
             procs.push_back(std::make_shared<IBUSProcess>(shared_mem));
             procs.push_back(std::make_shared<PWMProcess>(shared_mem));
             procs.push_back(std::make_shared<Middleman>(shared_mem));
+
 
             // Initialize processes
             for (auto& proc : procs) {
@@ -80,24 +89,32 @@ void Core::process_manager() {
             procs.push_back(std::make_shared<IBUSProcess>(shared_mem));
             procs.push_back(std::make_shared<PWMProcess>(shared_mem));
             procs.push_back(std::make_shared<Middleman>(shared_mem));
+            procs.push_back(std::make_shared<IMUProcess>(shared_mem));
+
+            // Flags
+            shared_mem.f_logflightdata = pf_logflightdata;
+            shared_mem.f_prompt_calibrate = pf_prompt_calib;
+            shared_mem.f_should_calibrate = pf_should_calib;
 
             // Initialize processes
             for (auto& proc : procs) {
                 auto init_res = proc->init();
                 if (!init_res) {
                     // TODO advanced error handling
-                    logger->error("Init failed for {}", typeid(*proc).name());
+                    logger->error("Init failed for {}: {}", typeid(*proc).name(), init_res.error().to_string());
                     return;
                 }
             }
+
             
             // Config
             shared_mem.middleman_mode = PASSTHROUGH;
             shared_mem.mmode_user_allowed = false;
+            shared_mem.flightlog_starttime = std::chrono::steady_clock::now();
+            
 
             // Launch processes
             std::vector<std::thread> threads;
-
             for (auto& proc : procs) {
                 threads.push_back(std::thread(std::ref(*proc)));
             }
@@ -118,20 +135,19 @@ void Core::process_manager() {
     // Watchdog loop
     while (core_state.fstate == FlightState::OPERATIONAL) {
         for (auto& proc : procs) {
-            if (proc->state == ProcessState::FAILURE) {
+            if (proc->state == ProcessState::FAILED) {
                 // TODO handle failed process here
-                logger->error("Process {} failed.", typeid(proc).name());  // TEMPORARY
-                core_state.fstate = FlightState::DEINIT;
+                logger->error("Process {} failed.", typeid(*proc).name());  // TEMPORARY
                 break;
             } else if (proc->state == ProcessState::STOPPED) {
-                logger->info("Process {} stopped.", typeid(proc).name());
+                logger->info("Process {} stopped.", typeid(*proc).name());
                 // TODO handle stopped process here
-                core_state.fstate = FlightState::DEINIT;
                 break;
             }
         }
         std::this_thread::sleep_for(PROCESS_MGR_SLEEP);
     }
+    deinit();
 }
 
 void Core::deinit() {
@@ -141,9 +157,12 @@ void Core::deinit() {
 
     if (!procs.empty()) {
         for (auto& proc : procs) {
-            proc->stop();
+            if (proc) {
+                proc->stop();
+            }
         }
     }
+    logger->info("Bye");
 }
 
 Core::~Core() {

@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <expected>
 #include <memory>
 #include <queue>
@@ -9,13 +10,14 @@
 #include "PiPCA9685/PCA9685.h"
 #include "errors.hpp"
 #include "common.hpp"
-#include "MPU9250.h"
 extern "C" {
     #include "ibus/ibus.h"
+    #include "../extern/sensor-imu/imu.h"
 }
 
 
 #define PWM_FREQ 50.0
+#define IMU_CAL_SAMPLESIZE 500
 
 class PWM {
     private:
@@ -45,6 +47,8 @@ class PWM {
 class IBUS {
     private:
         std::shared_ptr<spdlog::logger> logger;
+        std::shared_ptr<spdlog::logger> input_log;
+        std::chrono::time_point<std::chrono::steady_clock>* log_starttime;
 
         ibus_context_t context;
         uart_lowlevel_config ibus_config;
@@ -54,7 +58,9 @@ class IBUS {
         const uint8_t ail_ch;
         const uint8_t thr_ch;
         const uint8_t s_arm_ch;
-        control_queue_t* q_input = nullptr;
+
+        Control* c_input = nullptr;
+        std::mutex* c_input_mut = nullptr;
 
         static void handler(ibus_channel_t* channels_raw, void* cookie);
     public:
@@ -63,25 +69,39 @@ class IBUS {
             uint8_t ele_ch, 
             uint8_t ail_ch, 
             uint8_t thr_ch,
-            uint8_t s_arm_ch
+            uint8_t s_arm_ch,
+            std::shared_ptr<spdlog::logger> input_log, std::chrono::time_point<std::chrono::steady_clock>* flog_starttime
         );
         ~IBUS();
-        void_expensive start(control_queue_t* q_ctrl);
+        void_expensive start(Control* c_input_in, std::mutex* c_input_mut_in);
 };
 
 class IMU {
     private:
         std::shared_ptr<spdlog::logger> logger;
+        std::shared_ptr<spdlog::logger> imu_log;
+        std::chrono::time_point<std::chrono::steady_clock>* log_starttime;
 
-        // const std::string device;
-        const uint16_t addr; 
+        const std::string device;
 
-        std::unique_ptr<MPU9250> board;
+        float bias_x;
+        float bias_y;
+        float bias_z;
+
+        imut* board;
     public:
         IMU(
-            // std::string device, 
-            uint16_t addr
+            std::string_view device,
+            std::shared_ptr<spdlog::logger> imu_log, std::chrono::time_point<std::chrono::steady_clock>* flog_starttime,
+            float bias_x = 0.,
+            float bias_y = 0.,
+            float bias_z = 0.
         );
         ~IMU();
-        std::expected<RatesRead, ErrorType> read();
+        std::expected<RatesRead, ErrorType> read(bool incbias = false);
+        void_expensive calibrate();
+        inline float getBiasX() {return this->bias_x;}
+        inline float getBiasY() {return this->bias_y;}
+        inline float getBiasZ() {return this->bias_z;}
+        inline std::array<float, 3> getBias() {return {bias_x, bias_y, bias_z};}
 };

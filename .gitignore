@@ -21,6 +21,7 @@ Makefile
 .benchmarks/
 .cache/
 .pytest_cache/
+*.swp
 
 # Dev tools
 .clangd

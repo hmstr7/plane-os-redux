@@ -1,6 +1,11 @@
 #pragma once
 #include <cstdint>
-#include <boost/circular_buffer.hpp>
+
+#define LOGDIR "../logs/"
+#define FLIGHTLOGPREFIX "flightlog"
+#define FLIGHTLOGFILEXT ".csv"
+#define FLIGHTLOGHEADER_INPUT "t,ele,ail,thr,s_arm"
+#define FLIGHTLOGHEADER_IMU "t,x,y,z"
 
 #define ALLOWED_DEVIATION 20
 #define CONTROL_SURFACE_NEUTRAL 1500
@@ -9,6 +14,10 @@
 #define DISARMED_THR 1000
 #define SWITCH_MIDDLE 1500
 #define SWITCH_OFF 1000
+#define IMU_BOUNDS 250
+
+#define POLICY_DROPINVALIDRATES false
+#define POLICY_CALIBFAILEDSTOPSPROG false
 
 /*
 State of the vehicle
@@ -67,16 +76,22 @@ struct Control {
     };
 };
 #define CONTROL_NEUTRAL Control(CONTROL_SURFACE_NEUTRAL,CONTROL_SURFACE_NEUTRAL,THR_NEUTRAL,SWITCH_OFF)
+
 /*
 Angular velocity reads produced by IMU
 */
 struct RatesRead {
+    bool valid = false;
     float x;
     float y;
     float z;
+    inline RatesRead(float x, float y, float z): x(x), y(y), z(z) {
+        this->valid = 
+            !(x < -IMU_BOUNDS || IMU_BOUNDS > x) && 
+            !(y < -IMU_BOUNDS || IMU_BOUNDS > y) && 
+            !(z < -IMU_BOUNDS || IMU_BOUNDS > z);
+    }
 };
-
-typedef boost::circular_buffer<Control> control_queue_t; // Control queue (ex. q_input or q_output) is a ring buffer of Control objects, the new ones being appended to the end while the oldest ones are being read and deleted from the front.
 
 struct State {
     enum FlightState fstate;

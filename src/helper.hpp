@@ -5,16 +5,17 @@
 #include "errors.hpp"
 
 #define CONFIG_PATH_HW "../config/hardware.json"
+#define CONFIG_PATH_AUTO "../config/hardware.json"
 
 
 
 std::expected<nlohmann::json, Error> get_hardware_config();
+std::expected<nlohmann::json, Error> get_auto_config();
 
 template<typename T>
 std::expected<T, Error> get_from_json(
     const nlohmann::json& json, 
-    std::initializer_list<std::string_view> path, 
-    std::string_view caller = "unspecified"
+    std::initializer_list<std::string_view> path
 );
 #include "helper.tpp"
 
