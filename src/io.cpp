@@ -6,6 +6,7 @@
 #include <expected>
 #include <iomanip>
 #include <memory>
+#include <optional>
 #include <string>
 #include "common.hpp"
 #include "errors.hpp"
@@ -47,10 +48,11 @@ void_cheap PWM::execute(Control& control_sequence) {
 	logger->warn("Invalid Control, dropping");
         return {};
     }
-    static uint16_t s_arm_buff = 0;
-
-    if (control_sequence.s_arm > SWITCH_MIDDLE) {
-        if (control_sequence.s_arm != s_arm_buff) {
+    static std::optional<bool> is_armed_buff;
+    static bool is_armed;
+    is_armed = control_sequence.s_arm > SWITCH_MIDDLE;
+    if (is_armed) {
+        if (!is_armed_buff || (is_armed != *is_armed_buff)) {
           logger->info("Armed");
         }
         
@@ -58,13 +60,13 @@ void_cheap PWM::execute(Control& control_sequence) {
         board->set_pwm_ms(l_thr_ch, throttle);
         board->set_pwm_ms(r_thr_ch, throttle);
     } else {
-        if (control_sequence.s_arm != s_arm_buff) {
+        if (!is_armed_buff || (is_armed != *is_armed_buff)) {
             logger->info("Disarmed");
         }
         board->set_pwm_ms(l_thr_ch, (double) DISARMED_THR / 1000);
         board->set_pwm_ms(r_thr_ch, (double) DISARMED_THR / 1000);
     }
-    s_arm_buff = control_sequence.s_arm;
+    is_armed_buff = is_armed;
 
     double elevator = (double) control_sequence.elevator/1000;
     board->set_pwm_ms(ele_ch, elevator);
