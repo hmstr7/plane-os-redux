@@ -21,14 +21,14 @@
 #define Q_IN_SIZE 100
 #define Q_OUT_SIZE 100
 
-#define JSONGET(config,var,T, ...) \
-auto var = get_from_json<T>(config.value(), {__VA_ARGS__}); \
+#define JSONGET(arg_config_jg,var,T, ...) \
+auto var = get_from_json<T>(arg_config_jg.value(), {__VA_ARGS__}); \
 if (!var) { \
     return std::unexpected(var.error()); \
 }
 
-#define JSONGET_BIAS(config,var,T, ...) \
-auto var = get_from_json<T>(config.value(), {__VA_ARGS__}); \
+#define JSONGET_BIAS(arg_config_jgb,var,T, ...) \
+auto var = get_from_json<T>(arg_config_jgb.value(), {__VA_ARGS__}); \
 if (!var) { \
     logger->error("Failed to get bias from config - {}", var.error()); \
     fail = true; \
@@ -48,8 +48,8 @@ if (!logger) { \
     logger->set_level(LOGGER_PROCESS_LEVEL); \
 }
 
-#define SAVEBIAS(var,k,ind) \
-auto var = write_to_json<float>(config.value(), CONFIG_PATH_AUTO, {k}, imu->getBias()[ind]); \
+#define SAVEBIAS(arg_config_sb,var,k,ind) \
+auto var = write_to_json<float>(arg_config_sb.value(), CONFIG_PATH_AUTO, {k}, imu->getBias()[ind]); \
 if (!res) { \
     fail = true; \
 }

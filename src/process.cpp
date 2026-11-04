@@ -297,7 +297,7 @@ void Middleman::stop() {
 }
 
 IMUProcess::IMUProcess(Shared& shared_mem): Process(shared_mem) {
-    class_logger_name = LOGGER_MIDDLEMAN_NAME;
+    class_logger_name = LOGGER_IMU_NAME;
     INIT_CLASS_LOGGER
 }
 
@@ -305,19 +305,19 @@ void_expensive IMUProcess::init() {
     if (this->state == NOT_READY) {
         logger->trace("Init");
 
-        auto config = get_hardware_config();
-        if (!config) {
-            return std::unexpected(config.error());
+        auto hconfig = get_hardware_config();
+        if (!hconfig) {
+            return std::unexpected(hconfig.error());
         }
         
-        auto device = get_from_json<std::string>(config.value(), {"IO","IMU","device"});
+        auto device = get_from_json<std::string>(hconfig.value(), {"IO","IMU","device"});
         if (!device) {
             return std::unexpected(device.error());
         }
         
         auto autoconf = get_auto_config();
         if (!autoconf) {
-            return std::unexpected(autoconf.error());
+            return std::unexpected(autoconf.error()); // ! problematic?
         }
         
         bool fail = false;
@@ -387,9 +387,9 @@ void_expensive IMUProcess::init() {
                 std::cout << "\n(calib) Calibrated successfully.\n";
 
                 bool fail = false;
-                SAVEBIAS(biasxres,"imu_gyro_bias_x", 0);
-                SAVEBIAS(biasyres,"imu_gyro_bias_y", 1);
-                SAVEBIAS(biaszres,"imu_gyro_bias_z", 2);
+                SAVEBIAS(autoconf,biasxres,"imu_gyro_bias_x", 0);
+                SAVEBIAS(autoconf,biasyres,"imu_gyro_bias_y", 1);
+                SAVEBIAS(autoconf,biaszres,"imu_gyro_bias_z", 2);
                 if (fail) {
                     logger->error("Failed to save calibration data: {}", biasxres.error().to_string());
                 }
