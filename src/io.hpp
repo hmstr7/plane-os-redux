@@ -19,6 +19,10 @@ extern "C" {
 #define PWM_FREQ 50.0
 #define IMU_CAL_SAMPLESIZE 500
 
+
+/**
+ * Object responsible for communicating with PCA9685
+ */
 class PWM {
     private:
         // config
@@ -44,6 +48,9 @@ class PWM {
         void_cheap execute(Control& control_sequence);
 };
 
+/**
+ * Object responsible for communicating with the receiver
+ */
 class IBUS {
     private:
         std::shared_ptr<spdlog::logger> logger;
@@ -76,6 +83,9 @@ class IBUS {
         void_expensive start(Control* c_input_in, std::mutex* c_input_mut_in);
 };
 
+/**
+ * Object responsible for communicating with the MPU6500
+ */
 class IMU {
     private:
         std::shared_ptr<spdlog::logger> logger;

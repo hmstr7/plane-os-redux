@@ -17,9 +17,9 @@ extern "C" {
     #include "../extern/sensor-imu/imu.h"
 }
 
-/*
-Initialize PCA9685 (access through private `board` field)
-*/
+/**
+ * Initialize PCA9685 (access through private `board` field)
+ */
 PWM::PWM(
     std::string device,
     uint8_t ele_ch,
@@ -38,10 +38,11 @@ PWM::PWM(
     logger->debug("PWM io module init done");
 }
 
-/*
-Executes given control sequence.
-* Warning: performance critical!
-*/
+/**
+ * Execute control sequence.
+ * 
+ * @details Set all mapped PWM channels on PCA9685 to pulsewidths from the control sequence
+ */
 void_cheap PWM::execute(Control& control_sequence) {
     // TODO temporary fix
     if (control_sequence.elevator == 0 || control_sequence.aileron == 0 || control_sequence.throttle == 0 || control_sequence.s_arm == 0) {
@@ -108,9 +109,14 @@ IBUS::~IBUS() {
 }
 
 
-/*
-Start pushing controls to q_ctrl
-*/
+/**
+ * Start pushing controls to c_input
+ * 
+ * @details starts the production of @ref Control objects which are later put into @ref Shared::c_input
+ * 
+ * @param c_input_in provide the reference to @ref Shared::c_input (sets this object's local copy of the pointer)
+ * @param c_input_mut_in provide the reference to @ref Shared::c_input_mut (mutex)
+ */
 void_expensive IBUS::start(Control* c_input_in, std::mutex* c_input_mut_in) {
     this->c_input = c_input_in;
     this->c_input_mut = c_input_mut_in;
@@ -131,12 +137,9 @@ void_expensive IBUS::start(Control* c_input_in, std::mutex* c_input_mut_in) {
 }
 
 
-/*
-Is called each time there is a new IBUS packet. 
-Important: pass `this` as a cookie in order to give the function access to the control queue
-
-* Warning: performance critical!
-*/
+/**
+ * IBUS packet handler. Puts received control sequences into @ref Shared::c_input.
+ */
 void IBUS::handler(ibus_channel_t*  channels_raw, void* cookie) {
     static auto* self = static_cast<IBUS*>(cookie);
 
@@ -212,11 +215,20 @@ IMU::~IMU() {
     imu_destroy(board);
 }
 
+/**
+ * Perform a gyro reading.
+ * 
+ * @param incbias if false, subtract bias from readings
+ * 
+ * @return a @ref RatesRead object with read gyro rates and dt since last reading. If a reading fails, return @ref ErrorType
+ */
 std::expected<RatesRead, ErrorType> IMU::read(bool incbias) {
     static imu_output io;
     static error* res;
     static float x,y,z;
-    static double t;
+    static double t = 0;
+    static double last_t = 0;
+
     res = imu_read(board, &io);
     if(res != NULL) {
         logger->error("IMU read error: {}", res);
@@ -228,23 +240,30 @@ std::expected<RatesRead, ErrorType> IMU::read(bool incbias) {
     y = (!incbias) ? io.gyro.y - bias_y : io.gyro.y;
     z = (!incbias) ? io.gyro.z - bias_z : io.gyro.z;
 
-    if (this->imu_log && this->log_starttime) {
+    last_t = t;
+    if (this->log_starttime) {
         t = std::chrono::duration<double>(std::chrono::steady_clock::now() - *(this->log_starttime)).count();
+    }
+    
+    float dt = (float) t - last_t;
 
+    if (this->imu_log && this->log_starttime) {
         this->imu_log->trace("{},{},{},{}",
             t,
             x,y,z
         );
     }
 
-    return RatesRead(x,y,z);
+    return RatesRead(dt,x,y,z);
 }
 
-/*
-Calibrate the IMU (automatically set gyro bias).
-* The drone should be completely stationary during this operation!
-
-*/
+/**
+ * Calibrate the IMU (automatically set gyro bias).
+ * 
+ * @details Performs gyro measurements @ref IMU_CAL_SAMPLESIZE times and 
+ * takes the arithmetic average of those readings to produce and save bias values.
+ * The drone should be completely stationary during this operation.
+ */
 void_expensive IMU::calibrate() {
     float bx,by,bz;
     for (int i = 0; i<=IMU_CAL_SAMPLESIZE; i++) {

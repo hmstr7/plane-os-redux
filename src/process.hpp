@@ -89,7 +89,7 @@ enum MiddlemanMode {
 struct Shared {
     Control c_input = CONTROL_NEUTRAL; std::mutex c_input_mut; /** Register containing last received control sequence */
     Control c_output = CONTROL_NEUTRAL; std::mutex c_output_mut; /** Register containing control sequence that needs to be executed */
-    RatesRead c_imu = RatesRead(0,0,0); std::mutex c_imu_mut; /** Register containing last IMU reading (gyro) */
+    RatesRead c_imu = RatesRead(0,0,0,0); std::mutex c_imu_mut; /** Register containing last IMU reading (gyro) */
 
     std::chrono::time_point<std::chrono::steady_clock> flightlog_starttime; /** Point in time that is considered the start of the flight log */
 

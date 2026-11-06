@@ -14,33 +14,36 @@
 #define DISARMED_THR 1000
 #define SWITCH_MIDDLE 1500
 #define SWITCH_OFF 1000
-#define IMU_BOUNDS 250
+#define IMU_BOUNDS 255 /** An IMU gyro reading with a value outside +- this value will be considered invalid. (currently set to 250+5 because of imprecisions)*/
 
 #define POLICY_DROPINVALIDRATES false
 #define POLICY_CALIBFAILEDSTOPSPROG false
 
-/*
-State of the vehicle
-*/
+/**
+ * Represents global state of the drone
+ */
 enum FlightState {
-    NONE, // unset / uninitialized
-    INIT, // initialized
-    OPERATIONAL, // currently operating
-    DEINIT // deinitialization
+    NONE /** unset / uninitialized */
+    ,INIT /** initialized */
+    ,OPERATIONAL /** currently operating */
+    ,DEINIT /** deinitialization */
 };
 
-/*
-Flight Sub-Program
-*/
+/**
+ * Flight Sub-Program
+ */
 enum Subprogram {
-    IDLE, // Do nothing
-    SIMPLE, // No stabilisation possible
-    FULL // Able to switch between modes
+    IDLE /** Do nothing */
+    ,SIMPLE /** No stabilisation possible */
+    ,FULL /** Able to switch between modes */
 };
 
-/*
-Control sequence that consists of 4 values ranging from 1000 to 2000
-*/
+/**
+ * Control sequence
+ * 
+ * @details Consists of 4 values ranging from 1000 to 2000 (pulsewidth in us). 
+ * If any of the values is past allowed limits, a corresponding default value is assigned defined in common.hpp
+ */
 struct Control {
     uint16_t elevator;
     uint16_t aileron;
@@ -77,16 +80,18 @@ struct Control {
 };
 #define CONTROL_NEUTRAL Control(CONTROL_SURFACE_NEUTRAL,CONTROL_SURFACE_NEUTRAL,THR_NEUTRAL,SWITCH_OFF)
 
-/*
-Angular velocity reads produced by IMU
-*/
+/**
+ * Angular velocity reads produced by IMU
+ */
 struct RatesRead {
     bool valid = false;
+    float dt;
     float x;
     float y;
     float z;
-    inline RatesRead(float x, float y, float z): x(x), y(y), z(z) {
+    inline RatesRead(float dt, float x, float y, float z): dt(dt), x(x), y(y), z(z) {
         this->valid = 
+            !(dt < 0) &&
             !(x < -IMU_BOUNDS || IMU_BOUNDS > x) && 
             !(y < -IMU_BOUNDS || IMU_BOUNDS > y) && 
             !(z < -IMU_BOUNDS || IMU_BOUNDS > z);
