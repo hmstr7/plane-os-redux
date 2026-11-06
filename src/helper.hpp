@@ -12,11 +12,6 @@
 std::expected<nlohmann::json, Error> get_hardware_config();
 std::expected<nlohmann::json, Error> get_auto_config();
 
-template<typename T>
-std::expected<T, Error> get_from_json(
-    const nlohmann::json& json, 
-    std::initializer_list<std::string_view> path
-);
 #include "helper.tpp"
 
 std::expected<uint8_t, ErrorType> to_uint8(int value);
