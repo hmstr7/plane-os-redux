@@ -1,4 +1,8 @@
 # Credits
 
-## Code snippets
-https://linux-sunxi.org/I2Cdev (CC BY 3.0) - provided i2c_init, i2c_set_pointer, i2c_read, i2c_write functions (taken from the example).
+## Libraries
+- https://github.com/gabime/spdlog (MIT) - provided logging functionality
+- https://github.com/zorxx/ibus (MIT) - provided ibus reading functionality (IBUS class)
+- https://github.com/nlohmann/json (MIT) - provided json parsing functionality (get_from_json, write_from_json functions)
+- https://github.com/aler9/sensor-imu (MIT) - provided MPU6500 reading functionality (IMU class)
+- https://github.com/barulicm/PiPCA9685 (MIT) - provided PCA9685-related functionality (PWM class)

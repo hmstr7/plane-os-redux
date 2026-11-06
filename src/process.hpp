@@ -21,17 +21,10 @@
 #define Q_IN_SIZE 100
 #define Q_OUT_SIZE 100
 
-#define JSONGET(arg_config_jg,var,T, ...) \
-auto var = get_from_json<T>(arg_config_jg.value(), {__VA_ARGS__}); \
-if (!var) { \
-    return std::unexpected(var.error()); \
-}
-
-#define JSONGET_BIAS(arg_config_jgb,var,T, ...) \
-auto var = get_from_json<T>(arg_config_jgb.value(), {__VA_ARGS__}); \
-if (!var) { \
-    logger->error("Failed to get bias from config - {}", var.error()); \
-    fail = true; \
+#define JSONGET(config_addr, to_var, to_var_t, ...) \
+std::expected<to_var_t, Error> to_var = get_from_json<to_var_t>(config_addr, {__VA_ARGS__}); \
+if (!to_var) { \
+    return std::unexpected(to_var.error()); \
 }
 
 #define TO_UINT8(configv,var) \
@@ -48,13 +41,19 @@ if (!logger) { \
     logger->set_level(LOGGER_PROCESS_LEVEL); \
 }
 
-#define SAVEBIAS(arg_config_sb,var,k,ind) \
-auto var = write_to_json<float>(arg_config_sb.value(), CONFIG_PATH_AUTO, {k}, imu->getBias()[ind]); \
-if (!res) { \
-    fail = true; \
-}
+#define CONCAT(a, b) CONCAT_INNER(a, b)
+#define CONCAT_INNER(a, b) a ## b
+#define UNIQUE_NAME(base) CONCAT(base, __COUNTER__)
+
+#define SAVEJSON(config_addr, val, val_t, ...) \
+write_to_json<val_t>(config_addr, {__VA_ARGS__}, val).transform_error([&fail, &last_err](const Error& err) {fail = true; last_err = err; return err;});
 
 
+/**
+ * @brief Enum representing current state of a process
+ * 
+ * @todo Documentation
+ */
 enum ProcessState {
     NOT_READY,
     READY,
@@ -63,6 +62,11 @@ enum ProcessState {
     STOPPED
 };
 
+/**
+ * @brief Enum representing current mode of operation of the middle man
+ * 
+ * @todo Documentation
+ */
 enum MiddlemanMode {
     NOT_SET,
     STANDBY,
@@ -70,28 +74,45 @@ enum MiddlemanMode {
     RATE_STAB
 };
 
-struct Shared {
-    Control c_input = CONTROL_NEUTRAL; std::mutex c_input_mut; // Register containing last received control sequence
-    Control c_output = CONTROL_NEUTRAL; std::mutex c_output_mut; // Register containing control sequence that needs to be executed
-    RatesRead c_imu = RatesRead(0,0,0); std::mutex c_imu_mut; // Register containing last IMU reading (gyro)
 
-    std::chrono::time_point<std::chrono::steady_clock> flightlog_starttime; // Point in time that is considered the start of the flight log
+/**
+ * Shared memory of all processes
+ * 
+ * @details This struct contains varaiables accessible (and sometimes modifiable) by all processes, as well as some flags pre-set by the @ref FlightCore::process_manager or 
+ * set dynamically
+ */
+struct Shared {
+    Control c_input = CONTROL_NEUTRAL; std::mutex c_input_mut; /** Register containing last received control sequence */
+    Control c_output = CONTROL_NEUTRAL; std::mutex c_output_mut; /** Register containing control sequence that needs to be executed */
+    RatesRead c_imu = RatesRead(0,0,0); std::mutex c_imu_mut; /** Register containing last IMU reading (gyro) */
+
+    std::chrono::time_point<std::chrono::steady_clock> flightlog_starttime; /** Point in time that is considered the start of the flight log */
 
     // Flags
-    bool f_logflightdata = false; // If flight data needs to be logged into a file (currently includes: received inputs, imu readings)
-    bool f_prompt_calibrate = true; // By default, the user is prompted to calibrate the IMU. This behaviour can be overriden by supplying --no-calib option.
-    bool f_should_calibrate = true; // If IMU calibration needs to be performed.
+    bool f_logflightdata = false; /** If flight data needs to be logged into a file (currently includes: received inputs, imu readings) */
+    bool f_prompt_calibrate = true; /** By default, the user is prompted to calibrate the IMU. This behaviour can be overriden by supplying --no-calib option. */
+    bool f_should_calibrate = true; /** If IMU calibration needs to be performed. */
 
-    MiddlemanMode middleman_mode = STANDBY; // Current mode of operation of the Middleman process 
-    bool mmode_user_allowed = false; // Current middleman state is allowed to be influenced by the user
+    MiddlemanMode middleman_mode = STANDBY; /** Current mode of operation of the Middleman process */
+    bool mmode_user_allowed = false; /** Current middleman state is allowed to be influenced by the user */
 
-    std::vector<spdlog::sink_ptr> sinks; // spdlog sinks (ex. console output or log file)
+    std::vector<spdlog::sink_ptr> sinks; /** spdlog sinks (ex. console output or log file) */
 };
 
+
+/**
+ * @name Processes
+ * @{
+ */
+
+/**
+ * @brief A process is an object running a routine responsible for managing one task (such as receiving commands). 
+ * Its operator()() function is what is being run in parallel along with other processes.
+ */
 class Process {
     protected:
         const char* class_logger_name;
-        std::shared_ptr<spdlog::logger> logger;
+        std::shared_ptr<spdlog::logger> logger; /** Logger specific to this process, created in @ref Process::init() and is referred to by a name defined as LOGGER_<class name>_NAME in process.hpp */
         Shared& shared_mem;
     public:
         inline Process(Shared& shared_mem): shared_mem(shared_mem) {};
@@ -101,7 +122,9 @@ class Process {
         virtual void stop() = 0;
 };
 
-
+/**
+ * @brief Process resposible for controlling a @ref PWM object and executing commands from @ref Shared::c_output
+ */
 class PWMProcess : public Process {
     private:
         std::unique_ptr<PWM> pwm_board;
@@ -112,6 +135,9 @@ class PWMProcess : public Process {
         void stop() override;
 };
 
+/**
+ * @brief Process resposible for controlling an @ref IBUS object and writing received control sequences to @ref Shared::c_input
+ */
 class IBUSProcess: public Process {
    private:
         std::unique_ptr<IBUS> ibus;
@@ -128,6 +154,9 @@ class IBUSProcess: public Process {
         void stop() override;
 };
 
+/**
+ * @brief Process resposible for controlling an @ref IMU object and writing read gyro values to @ref Shared::c_imu
+ */
 class IMUProcess: public Process {
     private:
         std::unique_ptr<IMU> imu;
@@ -139,6 +168,15 @@ class IMUProcess: public Process {
         void stop() override;
 };
 
+
+/**
+ * @brief Process responsible for processing input data and producing output
+ * 
+ * @details Middleman currently has multiple modes:
+ * * @ref MiddlemanMode::STANDBY - do nothing
+ * * @ref MiddlemanMode::PASSTHROUGH - move the control sequences from @ref Shared::c_input to @ref Shared::c_output without modifying them
+ * * @ref MiddlemanMode::RATE_STAB - (not implemented)
+ */
 class Middleman: public Process {
     private:
         bool running = false;
@@ -146,7 +184,11 @@ class Middleman: public Process {
         MiddlemanMode lastm = NOT_SET;
     public:
         Middleman(Shared& shared_mem);
-        void_expensive init() override;
+        void_expensive init() override; 
         void operator()() override;
         void stop() override;
 };
+
+/**
+ * @}
+ */

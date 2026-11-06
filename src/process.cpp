@@ -26,20 +26,14 @@ PWMProcess::PWMProcess(Shared& shared_mem) : Process(shared_mem) {
 void_expensive PWMProcess::init() {
     if (this->state == NOT_READY) {
         logger->trace("Init"); 
+
         // getting values from config
-        const auto config = get_hardware_config();
-        if (!config) {
-            logger->error("Failed to load config: ", config.error());
-            return std::unexpected(config.error());
-        }
-
-
-        JSONGET(config, config_device, std::string, "IO","PWM","device")
-        JSONGET(config, config_ele_ch, int,"IO","PWM","mapping","ele")
-        JSONGET(config, config_l_ail_ch, int,"IO","PWM","mapping","l_ail")
-        JSONGET(config, config_r_ail_ch, int,"IO","PWM","mapping","r_ail")
-        JSONGET(config, config_l_thr_ch, int,"IO","PWM","mapping","l_thr")
-        JSONGET(config, config_r_thr_ch, int,"IO","PWM","mapping","r_thr")
+        JSONGET(CONFIG_PATH_HW, config_device, std::string, "IO","PWM","device")
+        JSONGET(CONFIG_PATH_HW, config_ele_ch, int,"IO","PWM","mapping","ele")
+        JSONGET(CONFIG_PATH_HW, config_l_ail_ch, int,"IO","PWM","mapping","l_ail")
+        JSONGET(CONFIG_PATH_HW, config_r_ail_ch, int,"IO","PWM","mapping","r_ail")
+        JSONGET(CONFIG_PATH_HW, config_l_thr_ch, int,"IO","PWM","mapping","l_thr")
+        JSONGET(CONFIG_PATH_HW, config_r_thr_ch, int,"IO","PWM","mapping","r_thr")
         
         // conversion
         std::string device = config_device.value();
@@ -112,11 +106,11 @@ void_expensive IBUSProcess::init() {
         }
         
         std::initializer_list<std::string_view> path = {};
-        JSONGET(config, config_device, std::string,"IO","IBUS","device")
-        JSONGET(config, config_ele_ch, int,"IO","IBUS","mapping","ele")
-        JSONGET(config, config_ail_ch, int,"IO","IBUS","mapping","ail")
-        JSONGET(config, config_thr_ch, int,"IO","IBUS","mapping","thr")
-        JSONGET(config, config_s_arm_ch, int,"IO","IBUS","mapping","s_arm")
+        JSONGET(CONFIG_PATH_HW, config_device, std::string,"IO","IBUS","device")
+        JSONGET(CONFIG_PATH_HW, config_ele_ch, int,"IO","IBUS","mapping","ele")
+        JSONGET(CONFIG_PATH_HW, config_ail_ch, int,"IO","IBUS","mapping","ail")
+        JSONGET(CONFIG_PATH_HW, config_thr_ch, int,"IO","IBUS","mapping","thr")
+        JSONGET(CONFIG_PATH_HW, config_s_arm_ch, int,"IO","IBUS","mapping","s_arm")
         
         // conversion
         std::string device = config_device.value();
@@ -322,9 +316,9 @@ void_expensive IMUProcess::init() {
         
         bool fail = false;
 
-        JSONGET_BIAS(autoconf, bias_x, float, "imu_gyro_bias_x")
-        JSONGET_BIAS(autoconf, bias_y, float, "imu_gyro_bias_y")
-        JSONGET_BIAS(autoconf, bias_z, float, "imu_gyro_bias_z")
+        JSONGET(CONFIG_PATH_AUTO, bias_x, float, "imu_gyro_bias_x")
+        JSONGET(CONFIG_PATH_AUTO, bias_y, float, "imu_gyro_bias_y")
+        JSONGET(CONFIG_PATH_AUTO, bias_z, float, "imu_gyro_bias_z")
 
         if (shared_mem.f_logflightdata) {
             std::ostringstream lfilename;
@@ -387,11 +381,14 @@ void_expensive IMUProcess::init() {
                 std::cout << "\n(calib) Calibrated successfully.\n";
 
                 bool fail = false;
-                SAVEBIAS(autoconf,biasxres,"imu_gyro_bias_x", 0);
-                SAVEBIAS(autoconf,biasyres,"imu_gyro_bias_y", 1);
-                SAVEBIAS(autoconf,biaszres,"imu_gyro_bias_z", 2);
+                void_expensive res;
+                Error last_err(DefaultError);
+                SAVEJSON(CONFIG_PATH_AUTO, imu->getBiasX(), float,"imu_gyro_bias_x");
+                SAVEJSON(CONFIG_PATH_AUTO, imu->getBiasY(), float,"imu_gyro_bias_y");
+                SAVEJSON(CONFIG_PATH_AUTO, imu->getBiasZ(), float,"imu_gyro_bias_z");
+                
                 if (fail) {
-                    logger->error("Failed to save calibration data: {}", biasxres.error().to_string());
+                    logger->error("Failed to save calibration data: {}", last_err.to_string());
                 }
 
             }
