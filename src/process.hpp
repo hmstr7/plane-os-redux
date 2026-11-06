@@ -26,6 +26,11 @@ std::expected<to_var_t, Error> to_var = get_from_json<to_var_t>(config_addr, {__
 if (!to_var) { \
     return std::unexpected(to_var.error()); \
 }
+#define JSONGET_SETFAIL(config_addr, to_var, to_var_t, ...) \
+std::expected<to_var_t, Error> to_var = get_from_json<to_var_t>(config_addr, {__VA_ARGS__}); \
+if (!to_var) { \
+    fail = true; \
+}
 
 #define TO_UINT8(configv,var) \
 auto var = to_uint8(configv.value()); \

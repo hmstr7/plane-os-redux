@@ -5,7 +5,6 @@
 #include "helper.tpp"
 #include "io.hpp"
 #include <chrono>
-#include <cstdint>
 #include <expected>
 #include <initializer_list>
 #include <iomanip>
@@ -97,13 +96,7 @@ IBUSProcess::IBUSProcess(Shared& shared_mem) : Process(shared_mem) {
 
 void_expensive IBUSProcess::init() {
     if (this->state == NOT_READY) {
-        logger->trace("Init"); 
-        // getting values from config
-        const auto config = get_hardware_config();
-        if (!config) {
-            logger->error("Failed to load config: ", config.error());
-            return std::unexpected(config.error());
-        }
+        logger->trace("Init");
         
         std::initializer_list<std::string_view> path = {};
         JSONGET(CONFIG_PATH_HW, config_device, std::string,"IO","IBUS","device")
@@ -298,27 +291,13 @@ IMUProcess::IMUProcess(Shared& shared_mem): Process(shared_mem) {
 void_expensive IMUProcess::init() {
     if (this->state == NOT_READY) {
         logger->trace("Init");
-
-        auto hconfig = get_hardware_config();
-        if (!hconfig) {
-            return std::unexpected(hconfig.error());
-        }
         
-        auto device = get_from_json<std::string>(hconfig.value(), {"IO","IMU","device"});
-        if (!device) {
-            return std::unexpected(device.error());
-        }
-        
-        auto autoconf = get_auto_config();
-        if (!autoconf) {
-            return std::unexpected(autoconf.error()); // ! problematic?
-        }
+        JSONGET(CONFIG_PATH_HW, device, std::string, "IO","IMU","device")
         
         bool fail = false;
-
-        JSONGET(CONFIG_PATH_AUTO, bias_x, float, "imu_gyro_bias_x")
-        JSONGET(CONFIG_PATH_AUTO, bias_y, float, "imu_gyro_bias_y")
-        JSONGET(CONFIG_PATH_AUTO, bias_z, float, "imu_gyro_bias_z")
+        JSONGET_SETFAIL(CONFIG_PATH_AUTO, bias_x, float, "imu_gyro_bias_x")
+        JSONGET_SETFAIL(CONFIG_PATH_AUTO, bias_y, float, "imu_gyro_bias_y")
+        JSONGET_SETFAIL(CONFIG_PATH_AUTO, bias_z, float, "imu_gyro_bias_z")
 
         if (shared_mem.f_logflightdata) {
             std::ostringstream lfilename;
